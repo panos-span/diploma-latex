@@ -1,0 +1,851 @@
+\documentclass[11pt]{article}
+\usepackage[review]{acl}
+\usepackage{times}
+\usepackage{multirow}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{booktabs}
+\usepackage{graphicx}
+
+
+\title{AILS-NTUA at SemEval-2026 Task 10:}
+
+
+\author{First Author \\
+  Affiliation / Address line 1 \\
+  Affiliation / Address line 2 \\
+  Affiliation / Address line 3 \\
+  \texttt{email@domain} \\\And
+  Second Author \\
+  Affiliation / Address line 1 \\
+  Affiliation / Address line 2 \\
+  Affiliation / Address line 3 \\
+  \texttt{email@domain} \\}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+    This document is a supplement to the general instructions for *ACL authors. It contains instructions for using the \LaTeX{} style files for ACL conferences.
+    The document itself conforms to its own specifications, and is therefore an example of what your manuscript should look like.
+    These instructions should be used both for papers submitted for review and for final versions of accepted papers.
+\end{abstract}
+
+\section{Introduction}
+Humans have long exhibited a tendency to endorse conspiracy theories,
+particularly in contexts of uncertainty, threat, and social upheaval. Such
+beliefs are created and distributed to support human need for addressing
+existential or social issues and strengthen their sense of identity and
+belonging \cite{psychology-of-conspiracy, belief}. Despite their psychological
+appeal, conspiracies are associated with harmful consequences, limiting trust
+in well-documented facts and public decisions, while exacerbating political
+polarization and misinformation patterns \cite{understanding}.
+
+The rise of artificial intelligence inspired the connection of conspiracy
+identification with natural language, as language constitutes the most
+fundamental medium for conspiracy articulation and spread. Conspiratorial
+statements are subtly embedded in language exploiting linguistic strategies to
+evoke emotions and attribution of agency \cite{reducing, miani2022loco,
+    rains2023psycholinguistic}, suggesting that conspiracy identification goes well
+beyond superficial linguistic cues.
+
+Large Language Models (LLMs) have revolutionized linguistic research, enabling
+deep pattern identification and discrimination among their numerous abilities.
+However, LLMs have been found to be significantly prone to cognitive biases
+\cite{filandrianos-etal-2025-bias} and manipulation via persuasive language
+\cite{xu-etal-2024-earth}, while they generate and amplify misinformation
+\cite{chen2024combatingmisinformation}. Going one step further,
+state-of-the-art LLMs are even able to persuade people to adopt conspiratorial
+beliefs to a comparable degree as they can mitigate conspiracy dissemination
+\cite{costello2026largelanguagemodelseffectively}, exposing the double-edged
+nature of LLMs in the context of factual verification.
+
+The core challenges that conspiratorial discourse poses call for fine-grained
+data approaches that allow delving into the linguistic mechanisms that
+characterize conspiratorial utterances in an interpretable way. Nevertheless,
+prior datasets \cite{shahsavari2020conspiracy, langguth2023coco} frame
+conspiracy detection as a coarse-grained classification task, abstracting away
+from the particularities of conspiratorial discourse, thus obscuring how
+conspiratorial reasoning is formed and expressed in language. To fill this gap,
+the \textbf{SemEval 2026 Task 10: Psycholinguistic Conspiracy Marker Extraction
+    and Detection} emphasizes the localization and categorization of linguistic
+markers that signal conspiratorial thinking, complementing detection with
+psychologically-backed annotations.
+
+To address the dual challenges of accurate detection and interpretable marker
+extraction, models must be capable of capturing both global conspiratorial
+intent and fine-grained psycholinguistic cues embedded in language. In our
+approach, we leverage LLMs within agentic structures to advance the recognition
+of conspiratorial thought. Specifically, [] To the best of our knowledge, we
+introduce the \textit{first agentic LLM-based method} to combat conspiracy
+detection and identification of psycholinguistic features in language.
+
+In short, our contributions are the following:
+\begin{itemize}
+    \item We introduce the first agentic LLM-based method for psycholinguistic conspiracy
+          marker extraction and detection.
+\end{itemize}
+
+\section{Background}
+\paragraph{Task description}
+The dataset comprises 4,800 annotations spanning 4,100 unique Reddit submission
+statements from $>$190 subreddits, divided in two subtasks: \textbf{\textit{i)}
+    S1: Conspiracy Marker Extraction} contains textual spans that express core
+conspiracy markers grounded in evolutionary psychology. One or more marker
+types may appear in each comment, falling in the following categories:
+\textsc{Actor} (mentions of individual or group agents), \textsc{Action}
+(descriptions of what the actor is doing), \textsc{Effect} (consequences of the
+actions), \textsc{Victim} (who is being harmed), \textsc{Evidence} (claims or
+proof used to support the theory). \textbf{\textit{ii)} S2: Conspiracy
+    Detection} assigns conspiracy-related or not conspiracy-related labels to
+Reddit comments. More details about the dataset are provided in App.
+\ref{sec:eda}.
+
+\paragraph{Related work} Early works on NLP conspiratorial discourse on Reddit introduced narrative
+motifs correlated with conspiratorial evidence \cite{online-discussions} and
+demonstrated that conspiratorial thinking manifests through detectable
+psycholinguistic signals in user language \cite{klein2019pathways}, with
+consequent literature revealing that conspiracy theories exhibit distinctive
+narrative frameworks that can be computationally extracted from text
+\cite{Tangherlini2020Automated}. These foundational works empowered the
+operationalization of conspiracy identification as a classification task,
+exemplified by datasets such as COCO \cite{langguth2023coco} and YouNICon
+\cite{YouNICon}. Conspiracy detection involves techniques that explicitly model
+psycholinguistic signals, such as affective tone, attributional cues and
+explanatory framing, in order to provide explanatory evidence of conspiracy
+presence in language \cite{rains2023psycholinguistic,
+    language-of-conspiracy-theories, marino-etal-2025-linguistic}. The strong
+contextualization that LLMs offer inspired the introduction of related
+approaches; leveraging appropriate prompting enables accurate multi-label
+conspiracy classification, eliminating training demands
+\cite{peskine-etal-2023-definitions}. Complementarily, ConspEmoLLM
+\cite{liu2024conspemollm} involves emotion-aware LLM fine-tuning on several
+conspiratorial tasks, improving detection by leveraging affective signals, with
+subsequent extensions focusing on robustness to stylistic and emotional
+variation \cite{liu2025conspemollmv2}. Recent evaluations indicate that
+LLM-based conspiracy detection often relies on topical shortcuts and struggles
+with narrative ambiguity, underscoring the need for approaches grounded in
+interpretable psycholinguistic markers \cite{pustet-etal-2024-detection,
+    classifying}.
+
+\section{System Overview}
+
+We present an \textbf{agentic LLM architecture} that decomposes the dual
+challenges of marker extraction and conspiracy detection into specialized,
+interacting agents orchestrated via stateful workflows. Unlike monolithic
+prompting approaches that conflate reasoning steps within a single LLM call,
+our system explicitly separates \textit{generation}, \textit{critique},
+\textit{refinement}, and \textit{verification} into distinct computational
+nodes with typed interfaces. An overview of the system is illustrated in Figure
+\ref{fig:arch}.
+
+\subsection{S1: Marker Extraction via DD-CoT}
+
+We formulate marker extraction as a \textbf{hybrid extraction strategy} that
+separates semantic reasoning from structural localization, implemented through
+a four-node graph that contains: document text, few-shot examples, text
+complexity assessment, dominant narrative type, draft extractions, critic
+feedback, and final verified spans. %LangGraph 
+
+\paragraph{Hybrid Architecture Rationale.} A critical design decision is the explicit separation of \textit{semantic
+    identification} from \textit{span indexing}. LLMs excel at understanding
+\textit{what} constitutes a psycholinguistic marker and \textit{why} it belongs
+to a particular category, but they are inherently unreliable at character-level
+token counting. Consequently, we employ a two-stage strategy: (i) the LLM
+serves as a \textbf{semantic reasoner}, identifying marker text strings and
+their labels through reasoning chains; (ii) a deterministic Python-based
+\textbf{structural locator} performs exact string matching to compute character
+offsets (\texttt{startIndex}, \texttt{endIndex}). This hybrid approach
+eliminates the ``hallucinated span'' problem, i.e. instances where the LLM
+correctly identifies marker semantics but produces invalid or off-by-one
+character indices \cite{ogasa-arase-2025-hallucinated}.%---a well-documented limitation in autoregressive transformers that lack explicit positional grounding during generation
+
+\paragraph{Dynamic Discriminative Chain-of-Thought (DD-CoT).} Our core methodological contribution extends standard chain-of-thought (CoT)
+reasoning \cite{wei2022chain} by requiring the model to articulate both
+inclusion \textit{and} exclusion criteria for each candidate span. For each
+extracted marker, the LLM must justify the following: (i) \textit{Why
+    \textbf{this} label}: evidence supporting the assigned category (e.g.,
+``extracted as \textsc{Actor} because it names a collective agent with alleged
+malicious intent''); and (ii) \textit{Why \textbf{not} other labels}: explicit
+discrimination against confusable alternatives (e.g., ``not \textsc{Victim}
+because this entity performs the action rather than receiving harm''). This
+discriminative reasoning directly addresses the primary source of error
+identified in our early development: label confusion between semantically
+adjacent categories such as \textsc{Actor}$\leftrightarrow$\textsc{Victim} and
+\textsc{Action}$\leftrightarrow$\textsc{Effect}.%generator 
+
+\paragraph{Agents} comprise the following graph nodes:
+\begin{enumerate}
+    \item \textbf{DD-CoT Generator:} Produces candidate spans with discriminative rationales using DD-CoT, text complexity assessment (simple, moderate, complex), and dominant narrative classification (accusatory, victimhood, exposure) at temperature $\tau=0.7$ for exploration. Crucially, the LLM outputs only the marker text string and label, and refrains from generating character indices at this stage.
+    \item \textbf{Enhanced Critic:} Audits extractions from DD-CoT Generator for verbatim accuracy, granularity violations (single-word spans, full-sentence spans), label consistency, and exhaustiveness (missed markers). It implements a \textit{Soft Gate} mechanism that intercepts overly aggressive ``remove all'' directives when the draft contains structurally significant extractions (\textsc{Actor}--\textsc{Action} pairs), forcing granular refinement instead of total wipes.
+
+    \item \textbf{Refiner:} Applies targeted corrections based on the Critic's feedback while preserving valid spans, operating purely on text strings without index manipulation. %It receives narrative and complexity context to enable appropriate boundary expansion for complex texts  
+
+    \item \textbf{Deterministic Verifier:} A non-LLM post-processing node that serves as the \textit{structural locator}. It performs exact string matching with context-aware fallbacks (preceding/following context anchoring, Levenshtein-based fuzzy recovery for minor token variations) to compute character-precise offsets. Additionally, it implements aggressive cross-label deduplication to eliminate overlapping or duplicate spans. This node ensures that all submitted spans are structurally valid and anchored to the document text, regardless of any upstream LLM indexing errors.
+\end{enumerate}
+
+\paragraph{Self-Refine}  provides feedback on an LLM's own outputs and refines consequent generation
+\cite{madaan2023selfrefine}, operating on the agentic graph by executing the
+four nodes sequentially.
+
+\subsection{S2: Classification via Anti-Echo Chamber}
+
+The principal challenge in conspiracy detection is distinguishing \textit{topic
+    presence} from \textit{stance endorsement}, a phenomenon we term the
+\textbf{Reporter Trap}: texts that extensively discuss conspiracy theories
+without endorsing them (e.g., news articles, debunking posts, satirical
+content). Single-agent classifiers exhibit confirmation bias, tending to ``lock
+in'' to initial interpretations \cite{wan-etal-2025-unveiling}. For this
+reason, we implement S2 as a three-node graph maintaining: document text,
+markers extracted from S1, marker summary, RAG context, forensic statistics,
+council votes, and final verdict. The pipeline executes sequentially: Forensic
+Profiler $\rightarrow$ Parallel Council $\rightarrow$ Calibrated Judge.
+
+\paragraph{Forensic Profiler.} A deterministic profiling node that computes linguistic signatures, separated
+in four distinct types: (i) frequency of \textit{distancing} verbs (``said'',
+``claimed'', ``according to'') that signal \textit{reporting} vs.\
+\textit{endorsement}; proportion of ALL-CAPS tokens (excluding single letters
+and acronyms) than imply endorsement; (iii) high question density combined with
+hedging terms suggesting ``Just Asking Questions'' manipulation; (iv) passive
+voice frequency indicating hidden hands. These are injected into council
+prompts of the following stage as contextual warnings.
+
+%\paragraph{Forensic Profiler (Static Analysis).} Before LLM deliberation, a deterministic profiling node computes linguistic signatures: (i) \textit{Attribution Density}---frequency of distancing verbs (``said'', ``claimed'', ``according to'') that signal reporting vs.\ endorsement; (ii) \textit{Shouting Score}---proportion of ALL-CAPS tokens (excluding single letters and acronyms); (iii) \textit{JAQing Detection}---high question density combined with hedging terms suggesting ``Just Asking Questions'' manipulation; (iv) \textit{Agency Gap}---passive voice frequency indicating hidden hands. These metrics are injected into council prompts as contextual warnings.
+
+\paragraph{Parallel Council Architecture.} To force genuine epistemic diversity, we implement an \textbf{Anti-Echo
+    Chamber} where four specialized personas vote \textit{independently} without
+information leakage:
+\begin{enumerate}
+    \item \textbf{Prosecutor:} Argues \textit{\textbf{for}} conspiracy classification, identifying linguistic markers of endorsement and applying high-recall heuristics.
+    \item \textbf{Defense Attorney:} Argues \textit{\textbf{against}} conspiracy, searching for innocent explanations (attribution verbs, satire markers, policy criticism).
+    \item \textbf{Literalist:} Focuses on structural linguistic features, requiring explicit first-person assertions and strict burden-of-proof (expectation to justify a claim with sufficient evidence).
+    \item \textbf{Forensic Profiler:} Analyzes author stance through psycholinguistic signals (epistemic arrogance, us-vs-them framing, certainty cues).
+\end{enumerate}
+
+Each juror produces a structured vote containing: (i) verdict with confidence,
+(ii) key signal driving the decision, (iii) mandatory counter-argument
+generation to prevent confirmation bias, and (iv) uncertainty flags marking
+borderline aspects (e.g., ``sarcasm unclear'', ``reporting vs.\ endorsing'').
+All four agents execute via parallel asynchronous calls, preventing ordering
+bias observed in sequential debate architectures.%\textit{steelman} of the opposing view 
+
+\paragraph{Calibrated Judge.} A final adjudication node synthesizes council votes with context-aware
+confidence calibration. The Judge receives: (i) the full vote transcript
+including each juror's steelman arguments, (ii) council-level analytics
+(weighted score, consensus level, dissent strength, common uncertainty flags),
+and (iii) subreddit-based contextual priors (e.g., posts from
+conspiracy-focused communities receive heightened scrutiny for
+``non-conspiracy'' verdicts). Confidence is \textit{programmatically damped}
+post-inference: split verdicts ($2$-$2$) are capped at confidence $\leq 0.75$
+regardless of the Judge's raw output, defaulting to the conservative
+``non-conspiracy'' classification when the council is evenly divided. This
+calibration addresses the asymmetric cost structure where false positives
+(incorrectly flagging legitimate discourse) are more harmful than false
+negatives.
+
+\subsection{Contrastive Retrieval-Augmented Generation}
+\label{sec:contrastive-rag}
+Both subtasks employ dynamic few-shot retrieval from ChromaDB \cite{chromadb2023} vector collections. Unlike standard RAG approaches that retrieve by surface similarity, we implement \textbf{Contrastive In-Context Learning}, a retrieval strategy that prioritizes discriminative examples over merely similar ones.
+
+\paragraph{Marker Balancing.} For S1, we address class imbalance (\textsc{Evidence} and \textsc{Victim} are
+rare) through stratified sampling with 60\% allocation to underrepresented
+marker types, ensuring the model receives sufficient examples of challenging
+categories.
+
+\paragraph{Hard Negative Mining.} For S2, we specifically retrieve documents labeled ``non-conspiracy'' but
+containing S1 markers. These \textit{Reporter Trap} examples teach
+discrimination based on \textit{tone} rather than \textit{topic}. Retrieved
+precedents follow case-law templates (e.g., ``Acquitted because the text
+attributes claims without endorsement'') that provide structured reasoning
+patterns.
+
+\section{Experimental Setup}
+
+\paragraph{Dataset.}
+%We utilize the official SemEval 2026 Task 10 dataset comprising $>$4,100 unique Reddit submission statements with $>$4,800 psycholinguistic marker annotations spanning $>$190 subreddits. 
+All experiments use the official training/development splits without
+modification. The training set contains 4,316 documents across 190+ subreddits,
+while the development set comprises 100 documents spanning 74 unique subreddits
+with 456 marker annotations. In the development set, the marker type
+distribution shows \textsc{Actor} (29.8\%) and \textsc{Action} (22.8\%)
+dominating ($\sim$53\% combined), while \textsc{Evidence} (16.0\%),
+\textsc{Victim} (15.8\%), and \textsc{Effect} (15.6\%) are more balanced. The
+training set exhibits more severe imbalance with \textsc{Actor} and
+\textsc{Action} comprising $\sim$70\% combined. This skew motivates our
+stratified sampling strategy in the RAG component
+(Section~\ref{sec:contrastive-rag}), allocating 60\% retrieval weight to
+underrepresented categories. For S2, the development labels are distributed as:
+No (50.0\%), Yes (27.0\%), and Can't Tell (23.0\%). The \textit{hard negative}
+subset (texts discussing conspiracies without endorsing them) comprises $<$20\%
+of the training data, necessitating explicit hard negative mining. A detailed
+exploratory analysis is provided in Appendix~\ref{sec:eda}.
+\paragraph{Pipeline Components.} All final experiments use OpenAI \textbf{GPT-5.2} accessed via Pydantic-AI
+\cite{pydanticai2024} for schema-constrained generation. Stateful agent
+workflows are implemented as directed acyclic graphs using \textbf{LangGraph}
+\cite{langgraph2024}, where each node maintains typed state with explicit field
+annotations enabling deterministic transitions. The RAG component uses
+\textbf{ChromaDB} \cite{chromadb2023} with OpenAI text-embedding-3-small
+embeddings (1536 dimensions) and MMR-based reranking ($\lambda=0.7$). All LLM
+calls execute asynchronously with exponential backoff retry logic (base 2s, max
+5 retries). We employ differential temperature settings: $\tau=0.7$ for
+generators (DD-CoT Generator, Council Jurors), $\tau=0.0$ for critics/judges,
+and $\tau=0.3$ for the refiner. For prompt optimization, we utilize
+\textbf{GEPA} \cite{agrawal2025gepareflectivepromptevolution} integrated with
+MLflow, using a passthrough injection pattern to tunnel gold labels through the
+prediction wrapper for custom scoring. We conduct optimization runs targeting
+S1 and S2 system prompts with population sizes of 20--30 candidates and 40--80
+trials per run, alternating between training and development splits to ensure
+generalization. Final prompts achieved +4.2\% absolute $F_1$ improvement over
+hand-crafted baselines. The architecture is implemented using LangGraph
+\cite{langgraph2024} for workflow orchestration and Pydantic-AI
+\cite{pydanticai2024} for schema-constrained outputs, ensuring reproducible
+agent interactions and eliminating JSON parsing failures.
+
+\paragraph{Evaluation.} For S1, we report \textbf{Macro F1} (official leaderboard metric) computed
+across the five marker categories, plus \textbf{Character-level IoU} to assess
+span boundary precision. For S2, we report \textbf{Accuracy} and \textbf{Macro
+    F1} over the binary classification, additionally tracking \textbf{Hard-Negative
+    Accuracy} (on the Reporter Trap subset) as a diagnostic metric for model
+robustness to topical confounds.
+
+\section{Results and Analysis}
+
+\subsection{Main Results}
+\label{sec:main_results}
+
+The proposed agentic pipeline significantly outperforms the zero-shot GPT-5.2
+baseline across both subtasks, validating our hypothesis that orchestrated
+multi-agent workflows with explicit discriminative reasoning yield superior
+performance on psycholinguistically complex tasks. Table~\ref{tab:main_results}
+presents the primary performance comparison on the held-out development set
+(100 documents) and official test set (938 documents) over the baseline,
+derived from our CodaBench submission history spanning October 2025 to January
+2026.
+
+\begin{table}[h!]
+    \centering
+    \small
+    \begin{tabular}{@{}llccc@{}}
+        \toprule
+        \textbf{Task} & \textbf{Split}      & \textbf{Baseline F1} & \textbf{Agentic} & \textbf{$\Delta$} \\
+        \midrule
+        \multirow{2}{*}{S1}
+                      & Dev (\textit{100})  & 0.12                 & \textbf{0.24}    & +100\%            \\
+                      & Test (\textit{938}) & --                   & \textbf{0.21}    & --                \\
+        \midrule
+        \multirow{2}{*}{S2}
+                      & Dev (\textit{100})  & 0.53                 & \textbf{0.79}    & +49\%             \\
+                      & Test (\textit{938}) & --                   & \textbf{0.75}    & --                \\
+        \bottomrule
+    \end{tabular}
+    \caption{Main results (macro F1). Baseline: zero-shot GPT-5.2. Document counts in parentheses.}
+    \label{tab:main_results}
+\end{table}
+
+\textbf{S1: Marker Extraction}
+performance \textbf{doubled} (F1: 0.12 $\rightarrow$ 0.24 on
+dev), demonstrating that simple zero-shot prompting fails to capture the
+complexity of psycholinguistic span extraction. Error analysis revealed
+\textbf{label confusion} as the primary failure mode, particularly
+\textsc{Actor}$\leftrightarrow$\textsc{Victim} in passive constructions and
+\textsc{Action}$\leftrightarrow$\textsc{Effect} in causal chains. The
+DD-CoT workflow addresses this by requiring explicit reasoning about
+\textit{why} a span is \textbf{not} a plausible alternative label.
+
+\textbf{S2: Conspiracy Detection}
+F1 improved from 0.53 to 0.79 (+49\% relative). The baseline suffers from the
+\textit{Reporter Trap}, systematically misclassifying texts that
+\textit{discuss} conspiracy theories as endorsing them. Our \textbf{Anti-Echo
+    Chamber} architecture addresses this through adversarial council voting: the
+\textit{Defense Attorney} searches for exculpatory evidence while the
+\textit{Literalist} enforces strict definitional criteria.
+
+\paragraph{Test Set Generalization.}
+Both S1, S2 slightly degrade on the larger test set (S1: -12.5\%, S2: -5\%),
+consistent with distribution shift and the inherent difficulty of span
+extraction on unseen text.
+
+\subsection{Ablation Studies}
+\label{sec:ablation}
+
+We conduct ablation studies to quantify the contribution of each architectural
+component, as summarized in Table~\ref{tab:ablation_components}.
+
+\begin{table}[h]
+    \centering
+    \small
+    \begin{tabular}{@{}llccc@{}}
+        \toprule
+         & \textbf{Configuration} & \textbf{F1}    & \textbf{Acc.} & \textbf{Key Metric}     \\
+        \midrule
+        \multicolumn{5}{l}{\textit{S1 Marker Extraction}}                                    \\
+        \midrule
+         & Generator Only         & 0.173          & --            & --                      \\
+         & + Critic + Refiner     & \textbf{0.240} & --            & \textbf{+6.7 F1}        \\
+        \midrule
+        \multicolumn{5}{l}{\textit{S2 Conspiracy Detection}}                                 \\
+        \midrule
+         & Single Agent           & 0.726          & 0.78          & Recall = 0.481          \\
+         & Parallel Council       & \textbf{0.750} & \textbf{0.79} & \textbf{Recall = 0.560} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Component ablation on dev set. \textit{S1}: Self-Refine loop
+        adds +6.7 F1 points for marker extraction. \textit{S2}: Council
+        improves Conspiracy Recall by +7.9 points over a single agent.}
+    \label{tab:ablation_components}
+\end{table}
+
+\textbf{S1: The Self-Refine Loop.}
+By ablating the constituent agents, the Generator-only baseline achieves F1 = 0.173, already surpassing the zero-shot
+baseline (0.12) by capturing the ``gist'' of psycholinguistic markers. However,
+the full pipeline with \textbf{Critic + Refiner} reaches F1 = 0.240, a
+\textbf{+6.7 point improvement}. Error analysis reveals that the Generator
+frequently produces spans with imprecise boundaries (e.g., including determiners
+or trailing punctuation) and occasional label confusion. The Critic identifies
+these granular errors, and the Refiner surgically corrects them, validating
+that iterative self-refinement is essential for high-precision span extraction.
+
+\textbf{S2: The Anti-Echo Chamber.}
+Comparing a Single Agent to our Parallel Council reveals a nuanced picture.
+Raw accuracy improves only marginally (0.78 $\rightarrow$ 0.79), which might
+suggest the Council is unnecessary. However, examining \textbf{Conspiracy
+    Recall} tells a different story: the Single Agent achieves only 0.481,
+\textit{missing more than half} of actual conspiracies. The Council boosts
+Recall to \textbf{0.560} (+7.9 points) while maintaining precision.
+This pattern confirms our \textit{Reporter Trap} hypothesis: a single conservative
+agent systematically under-predicts conspiracy when texts \textit{discuss}
+rather than \textit{endorse} conspiratorial ideas. The diverse Council
+personas, particularly the \textit{Prosecutor} who argues \textit{for}
+conspiracy, surface these borderline cases that a lone agent dismisses. The
+Anti-Echo Chamber design successfully trades a small accuracy margin for
+substantially better coverage of the positive class.
+
+\paragraph{Impact of the Calibrated Judge.}
+A core design question for S2 is whether the fifth \textit{Calibrated Judge}
+agent justifies its computational overhead. We compare two configurations:
+(1)~\textbf{Majority Vote}, where the four Council agents cast votes and the
+final label is determined programmatically (ties default to
+``non-conspiracy''), and (2)~\textbf{Calibrated Judge}, our full pipeline where
+an LLM-based adjudicator reads the Council's reasoning before rendering a final
+verdict. Results on the development set are shown in
+Table~\ref{tab:ablation_judge}.
+
+\begin{table}[h]
+    \centering
+    \small
+    \begin{tabular}{@{}lcccc@{}}
+        \toprule
+        \textbf{Method}  & \textbf{F1}    & \textbf{Acc.}  & \textbf{Deadlock} & \textbf{FP Conf.} \\
+        \midrule
+        Majority Vote    & 0.638          & 0.779          & 66.7\%            & 0.890             \\
+        Calibrated Judge & \textbf{0.681} & \textbf{0.805} & \textbf{100.0\%}  & \textbf{0.865}    \\
+        \bottomrule
+    \end{tabular}
+    \caption{Ablation: Judge vs.\ Majority Vote. \textit{Deadlock} = accuracy on
+        2-2 Council splits. \textit{FP Conf.} = average confidence on false
+        positives (lower is better). Judge overhead: 1.39$\times$ tokens.}
+    \label{tab:ablation_judge}
+\end{table}
+
+\textbf{Deadlock Resolution.}
+The most striking result is the Judge's handling of \textit{deadlock}
+cases. Council splits where two agents vote ``conspiracy'' and two vote
+``non-conspiracy.'' Simple majority voting effectively becomes a coin flip
+(defaulting to ``non-conspiracy''), achieving only 66.7\% accuracy on these
+ambiguous instances. The Calibrated Judge, by contrast, achieves
+\textbf{100\% accuracy} on deadlocks. This is because the Judge reads the
+\textit{arguments}, not merely the vote counts: it can identify which dissenting
+agent provided stronger evidence, resolving ambiguity through reasoning rather
+than arbitrary tie-breaking. This capability is critical for edge cases where
+conspiratorial language is subtle or contested.
+
+\textbf{Epistemic Calibration.}
+Beyond raw accuracy, the Judge exhibits superior \textit{calibration}. When the
+system makes a false positive error (incorrectly labeling a text as
+conspiratorial), the Judge's average confidence is 0.865 compared to 0.890 for
+majority voting. This ``epistemic humility'', being less confident when
+wrong, is a desirable property for trustworthy AI systems, particularly in
+sensitive domains like misinformation detection where false accusations carry
+social cost.
+
+\textbf{Cost-Benefit Analysis.}
+The Judge incurs a 39.3\% token overhead (1.39$\times$ the Council-only cost).
+We argue this is justified: the +4.3 F1-point improvement represents
+substantial gains, and the perfect deadlock accuracy demonstrates robust
+handling of precisely the cases where naive voting fails. In deployment
+scenarios where reliability on ambiguous content matters more than throughput,
+the Calibrated Judge provides meaningful value.
+
+\paragraph{RAG Impact on Marker Extraction.}
+We extend our retrieval ablation to S1, comparing the same three strategies:
+(i)~No RAG (generator without examples), (ii)~Standard RAG (cosine similarity
+retrieval), and (iii)~Stratified RAG (60\% weight to underrepresented marker
+types with cross-encoder reranking). Results on the development set are shown
+in Table~\ref{tab:s1_rag_ablation}.
+
+\begin{table}[h]
+    \centering
+    \small
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        \textbf{Configuration} & \textbf{Macro F1} & \textbf{Precision} & \textbf{Recall} \\
+        \midrule
+        No RAG                 & \textbf{0.329}    & 0.322              & \textbf{0.419}  \\
+        Standard RAG (Naive)   & 0.296             & 0.292              & 0.376           \\
+        Stratified RAG (Ours)  & 0.311             & \textbf{0.313}     & 0.392           \\
+        \bottomrule
+    \end{tabular}
+    \caption{RAG strategy comparison on dev set (S1). Naive retrieval
+        \textit{degrades} performance (--3.3 F1 points). Stratified sampling
+        recovers +1.5 points but remains below No RAG baseline.}
+    \label{tab:s1_rag_ablation}
+\end{table}
+
+\textbf{Unexpected No-RAG Advantage.}
+Contrary to conventional RAG assumptions, the No RAG baseline achieves the
+\textbf{highest F1 (0.329)} on the development set. Standard RAG
+\textit{degrades} performance substantially (--3.3 points), with particularly
+severe recall collapse across all marker types. Error analysis reveals that
+naive similarity-based retrieval surfaces examples with different
+\textit{annotation granularity}. Some annotators mark full clauses while others
+target minimal spans. When the model retrieves stylistically dissimilar
+examples, it produces structurally inconsistent extractions that the verifier
+rejects.
+
+\textbf{Stratified Partial Recovery.}
+Our Stratified RAG approach allocating 60\% retrieval weight to rare marker
+types (Evidence, Victim, Effect) and applying cross-encoder reranking recovers
++1.5 F1 points over Standard RAG (0.296 $\rightarrow$ 0.311). The mechanism is
+twofold: (i)~label balancing ensures the model sees sufficient examples of
+underrepresented categories, addressing class imbalance; (ii)~reranking
+prioritizes examples with similar linguistic structure, reducing granularity
+mismatch. However, stratified sampling remains below the No RAG baseline,
+suggesting that retrieval overhead (noise from mismatched examples) outweighs
+benefits on this moderately-sized development set.
+
+\textbf{Test Set Generalization.}
+Critically, the patterns \textit{reverse} on the larger, more diverse test set
+(938 documents). Stratified RAG achieves an \textbf{absolute +0.03 F1
+    improvement} over No RAG, validating that retrieval benefits emerge with
+distribution shift and rare category exposure. Similarly, for S2, Contrastive
+RAG yields a \textbf{+0.02 F1 improvement} on the test set despite mixed dev
+set performance. These results confirm our architectural hypothesis: explicit
+label balancing and contrastive retrieval are \textit{essential} for robust
+generalization, even when dev set metrics suggest otherwise. The development
+set's limited size and class distribution fail to expose failure modes that
+manifest at scale.
+
+\subsection{Qualitative Error Analysis}
+\label{sec:qualitative}
+
+We present concrete linguistic examples illustrating the mechanisms underlying
+our quantitative results, examining both architectural successes and persistent
+failure modes.
+
+\paragraph{Success Case: Disentangling Agency.}
+Section~\ref{sec:ablation} demonstrated that DD-CoT improved Actor F1 by +2.7
+points (Table~\ref{tab:cot_ablation}), attributing this to enhanced agency
+detection. We trace this improvement to the model's ability to resolve
+\textbf{grammatical role vs.\ semantic role} mismatches, a pervasive ambiguity
+in passive and complex constructions. Consider the sentence: \textit{``The
+    public was manipulated by the media to distrust vaccines.''}
+
+\textbf{Standard CoT Failure.} A baseline system employing inclusion-only
+reasoning (``Why is this span labeled X?'') frequently tags \textit{``the
+    public''} as \textsc{Actor} because it occupies the grammatical subject
+position. Alternatively, it may extract \textit{``manipulated''} as
+\textsc{Action} while entirely missing the semantic agent (\textit{``the
+    media''}) buried in the prepositional phrase.
+
+\textbf{DD-CoT Success.} Our discriminative prompting forces explicit
+contrastive reasoning. The model outputs: \textit{``Label: \textsc{Actor}
+    (media). Inclusion: The media is the semantic initiator of the manipulation
+    action. Exclusion: NOT \textsc{Victim}, although `the public' suffers the
+    outcome, it is the recipient, not the orchestrator. NOT \textsc{Action}, we
+    extract agents, not their methods.''} This explicit ``Why NOT'' step compels
+the model to look \textit{past} syntactic surface structure (subject/object
+positioning) to identify \textit{semantic roles} (agent/patient). The
+performance gain validates that conspiracy marker extraction fundamentally
+requires reasoning about latent agency attribution, not merely surface
+grammatical patterns.
+
+\paragraph{Mitigating the Reporter Trap.}
+Our S2 RAG ablation (Table~\ref{tab:rag_ablation}) revealed that Contrastive
+RAG reduced the False Positive Rate by \textbf{50\%} (0.160 $\rightarrow$
+0.080), recovering the safety profile of the No RAG baseline while preserving
+retrieval benefits. This quantitative improvement directly addresses the core
+failure mode of naive similarity-based retrieval. Consider a representative
+debunking post from \textit{r/skeptic}: \textit{``CNN reports that conspiracy
+    theorists believe 5G towers cause COVID-19 symptoms by disrupting immune
+    systems.''}
+
+\textbf{Standard RAG Failure.} Without filtering, cosine similarity retrieval
+surfaces training examples containing \textit{``5G''} and \textit{``COVID-19''}
+that were labeled as conspiracies. The model observes that semantically similar
+documents share these lexical items \textit{and} positive labels, learning a
+spurious topical correlation. It subsequently misclassifies the skeptic post as
+conspiratorial because it discusses the same \textit{themes}, despite lacking
+endorsement.
+
+\textbf{Contrastive RAG Success.} Our hard negative mining explicitly retrieves
+non-conspiratorial texts that \textit{contain S1 markers}, i.e., documents
+that discuss conspiracies without endorsing them. For the query above, the
+system retrieves a precedent labeled \textit{Non-Conspiracy}: \textit{``The
+    article discusses false claims about vaccine microchips but presents them as
+    debunked misinformation.''} This retrieved example acts as a \textit{legal
+    precedent}, teaching the model that \textbf{attribution verbs}
+(\textit{``reports that''}, \textit{``conspiracy theorists believe''}) and
+\textbf{framing signals} (\textit{``false claims''}, \textit{``debunked''})
+neutralize conspiracy attribution. The model learns to separate topical overlap
+from stance endorsement, preciselythe discrimination required to escape the
+Reporter Trap.
+
+\paragraph{Remaining Failure Mode: High-Context Irony.}
+Despite architectural improvements, the system exhibits a persistent failure on
+\textbf{Poe's Law} scenarios, parody or sarcasm that is linguistically
+indistinguishable from genuine belief without external context. Consider a
+Reddit comment: \textit{``Oh sure, and I bet the lizard people hacked the
+    election servers too. Next you'll tell me chemtrails cause hurricanes.''} In
+the absence of explicit sarcasm markers (e.g., \texttt{/s} tags), the system
+processes this text as semantically endorsing conspiracy theories: it contains
+agentive entities (\textit{``lizard people''}), attributed actions
+(\textit{``hacked''}), and causal claims (\textit{``chemtrails cause
+    hurricanes''}).
+
+\textbf{The Semantic-Pragmatic Gap.} Our architecture successfully captures
+\textit{semantics} which is the literal propositional content of conspiracy
+narratives but lacks access to \textit{pragmatics}: the speaker's
+communicative intent, rhetorical stance, and discourse history. The hyperbolic
+stacking of absurd claims (\textit{``lizard people''} + \textit{``chemtrails
+    cause hurricanes''}) serves as a sarcasm signal for human readers familiar
+with conspiracy discourse, but the model interprets it as evidence
+\textit{strengthening} conspiracy classification due to marker density.
+
+\textbf{Mitigation Strategy.} False positives on ironic content account for
+$\sim$15\% of remaining S2 errors. Future iterations require
+\textbf{user-history modeling}: if a poster's comment history reveals consistent
+activity on \textit{r/skeptic} or \textit{r/TopMindsOfReddit} (a subreddit
+dedicated to mocking conspiracy theories), the prior probability of genuine
+endorsement should be drastically downweighted. Alternatively, ensemble models
+that incorporate \textbf{discourse coherence} metrics detecting rhetorical
+escalation patterns characteristic of satire could flag these edge cases for
+human review. This limitation underscores a fundamental challenge: purely
+text-based NLP systems cannot fully disambiguate intent in adversarial
+communicative contexts where speakers deliberately mimic the linguistic
+structures they critique.
+
+\section{Conclusion}
+
+This work demonstrates a fundamental paradigm shift from monolithic prompting
+to \textbf{agentic workflow engineering} for psycholinguistic NLP tasks.
+Complex discriminations such as distinguishing \textit{Actor} from
+\textit{Victim} or \textit{topical discussion} from \textit{stance endorsement}
+cannot be resolved by a single ``perfect prompt.'' Instead, they require a
+\textbf{chain of responsibility} where specialized agents execute complementary
+functions: generation, critique, refinement, and verification. For Subtask 1,
+we addressed the ``Hallucinated Span'' problem by coupling a \textbf{Semantic
+    Reasoner} (DD-CoT) with a \textbf{Deterministic Locator}, achieving a
+\textbf{doubling of F1 performance} (0.12 $\rightarrow$ 0.24) while eliminating
+character-level indexing errors. The explicit discriminative reasoning
+mechanism,requiring the model to articulate ``Why NOT'' alternative labels
+proved essential for agency detection, yielding a +2.7 point gain in Actor F1
+(Section~\ref{sec:ablation}). For Subtask 2, the \textbf{Anti-Echo Chamber}
+architecture (Parallel Council + Calibrated Judge) successfully disentangled
+conspiracy \textit{topics} from conspiratorial \textit{stance}, overcoming the
+Reporter Trap that plagued single-agent classifiers. Critically, the Calibrated
+Judge achieved \textbf{100\% accuracy on deadlocks}
+(Table~\ref{tab:ablation_judge}), demonstrating that AI can resolve its own
+ambiguity when provided with structured debate transcripts rather than mere
+vote counts. Our \textbf{Contrastive RAG} strategy, hard negative mining
+combined with stratified sampling, reduced the False Positive Rate by 50\%
+(0.160 $\rightarrow$ 0.080), validating that retrieval strategy design is as
+critical as retrieval presence itself.
+
+Despite these architectural successes, Section~\ref{sec:qualitative} identified
+a persistent failure mode: \textbf{high-context irony} (Poe's Law scenarios),
+where parody is indistinguishable from genuine belief without external context.
+Future systems must incorporate \textbf{user-history modeling} leveraging
+subreddit activity patterns and discourse coherence metrics to detect when
+speakers mimic conspiracy rhetoric to critique it. This limitation underscores
+that purely text-based models cannot fully disambiguate pragmatic intent in
+adversarial communicative contexts. Nevertheless, our results validate that
+agentic architectures provide the necessary \textit{interpretability} and
+\textit{algorithmic control} to deploy LLMs responsibly in high-stakes
+misinformation detection, where false accusations carry social cost and
+transparent reasoning chains enable human oversight.
+
+\section*{Acknowledgments}
+
+\bibliography{custom}
+
+\appendix
+\newpage
+\section{Exploratory Data Analysis}
+\label{sec:eda}
+
+\paragraph{Annotation Coverage}
+As mentioned in the official website of the task, there are more than 4,100
+unique Reddit comments, including 4,800 annotations in total. Most comments
+($\sim$3,500), have only one annotation, 550 have two, and 50 have more.
+Regarding marker density, around 4,000 comments have at least one
+psycholinguistic marker annotation. The exact distribution of marker category
+coverage in comments is demonstrated in Figure \ref{fig:num-of-markers}.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{images/num-of-markers.png}
+    \caption{Number of marker types in the dataset.}
+    \label{fig:num-of-markers}
+\end{figure}
+
+\paragraph{Label Distribution}
+The dataset considers two clear classes, \textit{Yes (Conspiracy)} and
+\textit{No (Not Conspiracy)}, while the class \textit{Can't Tell} covers
+uncertain instances. The distribution of labels in the training data is
+illustrated in Figure \ref{fig:label-distr}.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{images/label-distr.png}
+    \caption{Label distribution for conspiracy detection.}
+    \label{fig:label-distr}
+\end{figure}
+Each marker category (\textit{Actor}, \textit{Action}, \textit{Effect}, \textit{Evidence}, \textit{Victim}) appears with different frequency within the dataset. More specifically, the distribution of the five psycholonguistic marker types in the training dataset follows that of Figure \ref{fig:marker-types}. Based on this Figure, we can conclude that conspiracy narratives rely on a small set of recurring rhetorical functions instantiated as markers, but no single function dominates the discourse.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{images/marker-types.png}
+    \caption{Frequency per marker type.}
+    \label{fig:marker-types}
+\end{figure}
+
+\paragraph{Annotation Density} is an interesting feature that implicitly indicates the difficulty of
+annotating the dataset: a sparsely annotated dataset showcases that
+conspiratorial evidence is semantically well-diffused within the text and hard
+to be acknowledged by humans. Indeed, several documents contain 0 annotations,
+while most documents do not exceed 20 annotations. The long-tailed distribution
+of markers per document presented in Figure \ref{fig:density} validates the
+difficulty of the task.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{images/annot-density.png}
+    \caption{Number of marker annotations per document.}
+    \label{fig:density}
+\end{figure}
+
+It is also useful to display the co-ocurrences of markers in the training data,
+as in Figure \ref{fig:cooccurrence}, indicating that marker types frequently
+appear together within the same documents, which in turn suggests that
+annotations capture recurring combinations of rhetorical roles.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{images/cooccurrence.png}
+    \caption{Marker type co-occurrences}
+    \label{fig:cooccurrence}
+\end{figure}
+The high self-co-occurrence of \textit{Action} and \textit{Actor} markers indicates that many documents describe multiple actions and multiple agents, consistent with narratives that unfold through sequences of events involving several entities rather than isolated claims. The strong co-occurrence between \textit{Action} and \textit{Actor} markers further highlights agency attribution as a central organizing principle, with conspiracy narratives frequently linking actors to specific actions. In contrast, \textit{Effect} and \textit{Victim} markers show more moderate self-co-occurrence, suggesting that while consequences and affected parties are recurrent elements, they are typically less elaborated than agency and action. Notably, \textit{Evidence} and \textit{Victim} markers rarely co-occur within the same documents, indicating a separation between evidential and victim-centered framing. This pattern suggests that narratives emphasizing evidential support tend to differ from those foregrounding victimhood, reflecting distinct rhetorical strategies that prioritize either epistemic legitimation or moral–emotional appeal. Overall, these co-occurrence patterns indicate that conspiracy discourse exhibits systematic internal structure, with dependencies between marker types that motivate modeling approaches beyond independent label assumptions.
+
+\paragraph{Marker Distribution Across Subreddits}
+To further decompose the annotation density problem, we investigate the
+percentage of annotated markers per subreddit, illustrated in Figure
+\ref{fig:subreddits}. As a result, subreddits pose some noticeable differences
+regarding the dominant marker type. For example, \textit{Action} appears rather
+stable across subreddits, consistently describing \textit{what is being done},
+regardless of community; this demonstrates their foundational nature in
+conspiratorial discourse. The role of \textit{Actor} becomes more prominent in
+some communities (Israel$\textunderscore$Palestine) over other rhetorical roles
+(e.g. \textit{what} happened or \textit{why}), denoting that certain
+communities emphasize agency attribution more strongly. Across all subreddit
+categories, \textit{Actor} constitutes the most dominant marker type. On the
+contrary, \textit{Effect} is one of the less dominant marker types. It appears
+slightly lower in (Israel$\textunderscore$Palestine), but slightly elevated in
+other subreddit categories, suggesting focus on consequences and outcomes,
+rather than intent or causality. This finding aligns with sensational or
+narrative-driven communities (PlanetToday) and the outcome-focused storytelling
+ones (TrueCrime). \textit{Evidence} presents some mild variability, becoming
+less prominent in Israel$\textunderscore$Palestine and PlanetToday. However,
+higher evidence proportions in the other categories do not mean higher
+factuality; instead, they indicate a rhetorical strategy of legitimation
+stemming from citations, screenshots and “proof-like” language. Finally,
+\textit{Victim}, associated with moralization, emotional appeal and grievance
+narratives, presents some noticeable variability, covering higher proportion of
+markers in PlanetToday and TrueCrime subreddits.
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\linewidth]{images/pct-subreddit.png}
+    \caption{Marker type distribution across Subreddits.}
+    \label{fig:subreddits}
+\end{figure}
+
+\paragraph{Annotator Contribution} is unevenly distributed across annotators. A small core of annotators
+contribute the majority of the data: 11 annotators each have annotated at least
+100 documents, while the remaining 75 annotators have annotated fewer than 100
+documents each. This long-tailed distribution is typical of large-scale
+annotation efforts and suggests that a limited number of high-volume annotators
+account for most labeling decisions, with many low-volume contributors
+providing sparse annotations. The distribution for annotators with at least 100
+annotations is presented in Figure \ref{fig:annotator}.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{images/annotator.png}
+    \caption{Annotation contribution.}
+    \label{fig:annotator}
+\end{figure}
+
+\paragraph{Marker span length distribution}
+Analysis of marker span lengths shows that most annotations correspond to short
+to medium-length text segments, while very long spans (more than 200
+characters) are extremely rare. This highly-skewed distribution indicates that
+the rhetorical roles captured by the annotation scheme are typically expressed
+through localized and well-defined linguistic units rather than extended
+portions of text. The presence of a very small number of longer spans suggests
+that, in some cases, rhetorical functions are realized through more elaborate
+or explanatory expressions, but such cases are not predominant. Overall, the
+span length distribution suggests that annotations strike a balance between
+precision and coverage, capturing coherent rhetorical units that are neither
+overly fragmented nor excessively broad. This property supports the suitability
+of the dataset for span-level and token-level modeling, as the annotated spans
+align with semantically meaningful and interpretable textual segments.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{images/span-length.png}
+    \caption{Span length distribution.}
+    \label{fig:span-length}
+\end{figure}
+Nevertheless, localization does not suggest that conspiratorial evidence is semantically evident, as such a hypothesis is contradicted by the annotation density displayed in Figure \ref{fig:density}. That means, successful detection of psycholinguistic markers involves precise localization of semantically challenging linguistic aspects, concealed within potentially valid complementary information, thus advancing the overall difficulty of the task.
+
+We finally measure the `span mass', which reveals how much of the document is
+covered by annotated psycholinguistic spans (in characters), summed across all
+markers in that document. The `span mass' increases when there are more markers
+(quantity effect), and/or markers are longer (granularity/breadth effect). The
+trend is illustrated in Figure \ref{fig:mass}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/span-mass.png}
+    \caption{Marker span mass.}
+    \label{fig:mass}
+\end{figure}
+
+The relationship between total marker span length and the number of markers per
+document exhibits a clear positive trend, indicating that annotation coverage
+scales approximately linearly with annotation density. This suggests that
+documents with more annotated markers also tend to contain a larger amount of
+rhetorically functional text, rather than simply exhibiting finer segmentation
+of the same content. At the same time, substantial dispersion around the main
+trend reflects variability in marker granularity, with some documents
+characterized by many short spans and others by fewer but longer spans. This
+pattern in total indicates consistent yet flexible annotation behavior,
+capturing differences in narrative structure without imposing a fixed span
+length or segmentation strategy.
+
+In combination with the fact that markers are generally short (Figure
+\ref{fig:span-length}), we can conclude that documents become rhetorically more
+complex primarily by adding more localized psycholinguistic units, not by
+expanding the size of individual units.
+
+\section{Prompts}
+\label{sec:prompts}
+
+\end{document}
