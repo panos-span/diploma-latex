@@ -1,0 +1,33 @@
+<user_input>
+  <source_document>
+    {{text}}
+  </source_document>
+  <task_instruction>
+    You must perform structured discriminative analysis, not generic explanation.
+    <global_assessment>
+      Determine:
+      - Text Complexity: low / medium / high
+      - Dominant Narrative Type:
+      (e.g., reporting, opinion, rant, satire, insider roleplay, analysis)
+    </global_assessment>
+    <span_extraction>
+      Extract ALL text spans that contribute to DISCRIMINATIVE reasoning for labeling.
+      Rules for spans:
+      - Spans MUST be verbatim substrings from the text
+      - Prefer full phrases or sentences, not single tokens
+      - Include borderline / ambiguous spans (do not self-censor)
+    </span_extraction>
+    <discriminative_reasoning>
+      For each extracted span, explain:
+      - Why this span SUPPORTS the assigned label
+      - Why it does NOT support the most plausible alternative label(s)
+      You must explicitly contrast against alternatives
+      (e.g., reporting vs endorsement, critique vs conspiracy, satire vs insider roleplay).
+    </discriminative_reasoning>
+  </task_instruction>
+  <output_requirements>
+    - Be exhaustive: missing spans = error
+    - Be precise: reasoning must reference linguistic or semantic cues
+    - Do NOT assume intent without textual evidence
+  </output_requirements>
+</user_input>

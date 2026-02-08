@@ -1,0 +1,34 @@
+<user_input>
+  <source_document>
+    {{text}}
+  </source_document>
+  <draft_extraction>
+    {{draft_json}}
+  </draft_extraction>
+  <critique_report>
+    {{critique_json}}
+  </critique_report>
+  <task_instruction>
+    Apply the critique feedback to produce a corrected and improved DD-CoT extraction.
+    <required_actions>
+      You must:
+      1. Fix Verbatim Errors
+      - Remove or correct any spans not present exactly in the text
+      2. Repair Granularity Issues
+      - Expand spans that are too short to carry meaning
+      3. Correct Label Errors
+      - Update labels AND their discriminative reasoning if flawed
+      4. Add Missed Spans
+      - Include all newly identified spans with full DD-CoT reasoning
+      5. Log Changes
+      - Explicitly list what you changed and why
+    </required_actions>
+  </task_instruction>
+  <constraints>
+    - Maintain the same DD-CoT format
+    - Every span MUST include:
+    - Why it supports the label
+    - Why it rejects the strongest alternative
+    - Do NOT introduce new errors while fixing old ones
+  </constraints>
+</user_input>

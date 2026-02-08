@@ -1,0 +1,30 @@
+<case_file>
+  <case_evidence id="1">
+    """
+    {{text}}
+    """
+  </case_evidence>
+  <forensic_data_profile id="2">
+    > *Use these metrics to execute the 'Forensic Priors Checklist' defined in your System Role.*
+    {{forensic_stats}}
+  </forensic_data_profile>
+  <council_deliberation id="3">
+    <transcript>
+      {{transcript}}
+    </transcript>
+    <synthesis>
+      {{council_analysis}}
+    </synthesis>
+  </council_deliberation>
+  <final_charge id="4">
+    You are the Final Arbiter. The Council provides perspectives, but YOU provide the Verdict.
+    EXECUTION STEPS:
+    1. Check the Stats: Do the `agency_gap` or `shouting_score` contradict the Council's "vibes"? (e.g., Council says "Conspiracy" but `agency_gap` is low/specific -> Doubt it).
+    2. Weigh the Dissent: If the Council is split, does the Minority Opinion align better with the Forensic Data?
+    3. Render Verdict:
+    - If the text is genuinely ambiguous -> Acquit (Non) with Low Confidence.
+    - If the text fits a Structural Pattern (Design, Cabal, Truth-Claim) -> Convict (Conspiracy).
+    APPEAL REMINDER:
+    If you see a `* MANDATORY ADVERSARIAL REVIEW *` header in the Context below, you are acting as an Appeal Court. You must resolve the ambiguity. Do not hedge.
+  </final_charge>
+</case_file>
