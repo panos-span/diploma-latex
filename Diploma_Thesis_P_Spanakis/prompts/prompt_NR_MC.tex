@@ -1,0 +1,53 @@
+\begin{table}[H]
+    \renewcommand{\arraystretch}{1.5} % Increase row spacing
+    \centering
+    \begin{tabular}{c m{14.5cm}}
+        \hline
+        \textbf{Strategy} & \textbf{Prompt} \\ 
+        \hline
+        \textbf{ZS} & 
+        Choose A, B, C or D to answer the question: \newline
+        
+        Question: \textbf{\{question\}} \newline
+        A: \textbf{\{A\}} \newline
+        B: \textbf{\{B\}} \newline
+        C: \textbf{\{C\}} \newline
+        D: \textbf{\{D\}} \newline
+        
+        Provide only the letter corresponding to the correct answer: "A", "B", "C", or "D".
+        End the response with the phrase "The final answer is: " followed by the correct letter, with no additional text or commentary. \\
+        \hline
+        \textbf{CoT} & 
+        Choose A, B, C or D to answer the question: \newline
+        
+        Question: \textbf{\{question\}} \newline
+        A: \textbf{\{A\}} \newline
+        B: \textbf{\{B\}} \newline
+        C: \textbf{\{C\}} \newline
+        D: \textbf{\{D\}} \newline
+
+        Let’s think step by step. \newline
+        
+        Provide only the letter corresponding to the correct answer: "A", "B", "C", or "D".
+        End the response with the phrase "The final answer is: " followed by the correct letter, with no additional text or commentary. \\
+        \hline
+        \textbf{FS} & 
+        Choose A, B, C or D to answer the question: \newline
+        
+        Question: \textbf{\{question\}} \newline
+        A: \textbf{\{A\}} \newline
+        B: \textbf{\{B\}} \newline
+        C: \textbf{\{C\}} \newline
+        D: \textbf{\{D\}} \newline
+
+        Here are some examples of similar questions with their correct answers: \newline
+        
+        \textbf{\{NR\_MC\_EXAMPLES\}} \newline
+
+        Provide only the letter corresponding to the correct answer: "A", "B", "C", or "D".
+        End the response with the phrase "The final answer is: " followed by the correct letter, with no additional text or commentary. \\        
+        \hline
+    \end{tabular}
+    \caption{NR prompts for MC format across ZS, CoT and FS prompting strategies.}
+    \label{tab:nr-mc}
+\end{table}

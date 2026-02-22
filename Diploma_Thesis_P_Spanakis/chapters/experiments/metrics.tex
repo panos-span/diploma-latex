@@ -1,0 +1,21 @@
+\setcounter{secnumdepth}{4}
+
+\section{Metrics and Evaluation}
+\label{sec:metrics}
+To evaluate model performance under the No Redefinition (NR) and Redefinition (R) tasks, we categorize generated responses into four types:
+\vspace{\baselineskip}
+
+\begin{itemize}
+    \item \textbf{No Redefinition (NR) Correct Responses}: These responses correspond to cases where the LLM correctly answers under the No Redefinition (NR) task, indicating that the model actually possesses the knowledge prior to any alteration of the constant's true value (or units' scaling). They establish a baseline for knowledge recall.
+    \item \textbf{Anchored Responses}: These are the instances where the LLM, under the Redefinition (R) task, produces the answer that was correct before any redefinition (therefore incorrect after). This means that the model completely disregarded the redefinition instruction, \textit{anchoring} to its previous knowledge. For example, if the question is "What is the first digit of $\pi$?" under the redefinition "Redefine $\pi$ as 4.5.", the output "3" is considered the Anchored Response, because $\pi$'s well-known pre-redefinition value is "3.14159".
+    \item \textbf{Correct Responses}: Cases where the LLM fully understands the redefinition and manages to answer the question accordingly. In the previous example of $\pi$'s redefinition, the Correct Response would be the number "4".
+    \item \textbf{Completely Wrong Responses} In these cases, the LLM generates blank, inconsistent, nonsensical, or entirely incorrect responses unrelated to either prior or post-redefinition knowledge and that not fit any of the other three categories. Here are also included instances where the model completely refuses to perform the redefinition, claiming that this task is meaningless, impossible, or even against its guidelines.
+\end{itemize}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+After mapping the responses to their respective categories, we calculated the corresponding rates, which serve as key metrics to capture the abilities and behavioral tendencies of LLMs as they emerge across different experimental scenarios, model architectures, and sizes. In our analysis, we primarily focus on the \textbf{Anchored Responses rates}--or \textbf{anchoring rates}--as they are the ones that best reveal the dominance of memorized knowledge over true task-specific reasoning. Within the Completely Wrong category, we also systematically differentiate between blank outputs, incorrect results, and outright refusals to respond, to better understand the nature of model errors under redefined contexts. Particular emphasis is placed on the \textbf{refusal rates}, which--compared to the other two response types--offer insight on the models' \textit{confidence}, or \textit{overconfidence}, in either producing an answer or justifiably abstaining from one.
+
+
+
+In addition to the aforementioned evaluation measures, we used \textbf{correlation} as a complementary metric to offer further perspective on the relationship between model knowledgeability and behaviors of interest. Correlation is a statistical measure that quantifies the extent to which two variables are linearly related. In other words, it expresses how changes in one variable are associated with changes in another, capturing both the strength and direction of this relationship. Its values can range from -1 to 1. A coefficient close to 1 describes a strong positive correlation, or a direct relationship, where an increase (or decrease) in one series indicates an increase (or decrease) in the other as well. In opposition, a value close to -1 shows a strong negative, or inverse, correlation, which means that when one variable increases the other declines, and vice versa. Values around 0 suggest little or no linear relationship between the two variables. Specifically, we measured correlations between the correct response accuracies of the No Redefinition case and the post-redefinition anchoring or refusal rates.

@@ -1,0 +1,374 @@
+\section{Agentic Systems and Retrieval-Augmented Generation}
+\label{sec:agents-background}
+
+The limitations of monolithic LLM applications---where a single prompt attempts to solve an entire task---have motivated the development of \textit{agentic} architectures that decompose complex problems into specialized sub-tasks handled by coordinated AI agents. This section provides the theoretical background on multi-agent LLM systems, retrieval-augmented generation, and the orchestration frameworks that underpin our system design.
+
+
+\subsection{LLM-Based Agents}
+\label{sec:llm-agents}
+
+An \textit{LLM-based agent} extends the capabilities of a standalone language model by equipping it with a perception-reasoning-action loop that enables interaction with external environments~\cite{yao2023react}. Unlike standard LLM inference (prompt $\rightarrow$ response), an agent iteratively:
+\begin{enumerate}
+    \item \textbf{Perceives} its environment through observations (e.g., tool outputs, retrieved documents, user input).
+    \item \textbf{Reasons} about the current state and plans the next action using the LLM as a cognitive backbone.
+    \item \textbf{Acts} by invoking external tools, querying databases, or generating outputs.
+\end{enumerate}
+
+\subsubsection{The ReAct Paradigm}
+
+The ReAct (Reasoning and Acting) framework~\cite{yao2023react} formalized the interleaving of chain-of-thought reasoning with tool use. In ReAct, an LLM generates a \textit{thought} (reasoning trace) followed by an \textit{action} (tool invocation), then observes the result before generating the next thought-action pair. This interleaving allows the model to ground its reasoning in real-world information and correct errors through iterative feedback:
+\begin{itemize}
+    \item \textbf{Thought:} ``I need to check whether this span exists verbatim in the source text.''
+    \item \textbf{Action:} \texttt{search\_text(query="the corrupt media", document=source)}
+    \item \textbf{Observation:} ``Found at position 142--158.''
+    \item \textbf{Thought:} ``The span is verified. I can include it in my extraction.''
+\end{itemize}
+
+This paradigm is directly applicable to our system, where LLM agents perform span extraction while deterministic tools verify span boundaries (Section~\ref{sec:system-arch}).
+
+\subsubsection{Self-Refine}
+\label{sec:self-refine-bg}
+
+The Self-Refine framework~\cite{madaan2023selfrefine} introduces an iterative improvement loop where an LLM generates an initial output, critiques it, and then refines the output based on its own feedback---without additional training or supervised data. The process consists of three stages:
+\begin{enumerate}
+    \item \textbf{Generator:} Produces an initial solution.
+    \item \textbf{Critic:} Evaluates the solution along specified quality dimensions and provides structured feedback.
+    \item \textbf{Refiner:} Incorporates the feedback to produce an improved solution.
+\end{enumerate}
+
+This cycle can be repeated for multiple iterations until a convergence criterion is met (e.g., the critic finds no further issues). Empirical results demonstrate significant improvements across diverse tasks including dialogue response generation, code optimization, and mathematical reasoning~\cite{madaan2023selfrefine}. Our S1 pipeline adopts this architecture with specialized Generator, Critic, and Refiner agents (Section~\ref{sec:s1-pipeline}).
+
+
+\subsection{Multi-Agent Systems}
+\label{sec:multi-agent-bg}
+
+Multi-agent systems extend the single-agent paradigm by deploying multiple specialized agents that collaborate---or compete---to solve tasks that exceed the capability of any individual agent.
+
+\subsubsection{Collaboration Paradigms}
+
+Several collaboration paradigms have been proposed for multi-agent LLM systems:
+\begin{itemize}
+    \item \textbf{Sequential Pipeline:} Agents are connected in a chain, where each agent's output feeds into the next. This is suitable for tasks with natural decomposition into ordered steps (e.g., Generate $\rightarrow$ Critique $\rightarrow$ Refine).
+    \item \textbf{Parallel Voting:} Multiple agents independently process the same input and their outputs are aggregated through voting, averaging, or adjudication. This reduces individual agent bias and improves robustness.
+    \item \textbf{Adversarial Debate:} Agents are assigned opposing roles and argue for different conclusions, with a judge agent synthesizing the debate into a final decision~\cite{irving2018ai}. This paradigm forces examination of evidence from multiple perspectives.
+    \item \textbf{Hierarchical Orchestration:} A supervisor agent delegates sub-tasks to specialized worker agents, collects results, and integrates them into a coherent output.
+\end{itemize}
+
+\subsubsection{Confirmation Bias and Echo Chambers}
+
+A well-documented limitation of single-agent classification is \textit{confirmation bias}---the tendency to ``lock in'' to an initial interpretation and selectively attend to confirming evidence~\cite{nickerson1998confirmation, wang2023selfconsistency}. In the context of LLM-based classification, this manifests as the model failing to reconsider its initial assessment even when contradictory evidence is present.
+
+Multi-agent architectures address this through forced perspective diversity: by assigning agents with genuinely different evaluation mandates (e.g., a ``prosecutor'' seeking evidence of conspiracy versus a ``defense attorney'' seeking innocent explanations), the system ensures that both confirming and disconfirming evidence is systematically evaluated. The parallel execution of agents---without information leakage between them---prevents ordering bias that arises in sequential debate formats.
+
+\subsubsection{Self-Consistency}
+
+Self-consistency~\cite{wang2023selfconsistency} is a simpler multi-agent strategy where the same prompt is executed multiple times with sampling diversity (e.g., non-zero temperature), and the most frequent answer is selected through majority voting. While effective for reducing variance, self-consistency lacks the \textit{perspective diversity} of multi-persona systems, as all ``agents'' share the same evaluation framework.
+
+\subsection{Stateful Orchestration Frameworks}
+\label{sec:orchestration-bg}
+
+The coordination of multi-agent workflows requires sophisticated orchestration frameworks that manage state, control flow, and inter-agent communication.
+
+\subsubsection{LangGraph}
+
+LangGraph~\cite{langgraph2024} provides a framework for building stateful, multi-actor applications using directed graphs. Each node in the graph represents an agent or processing step, and edges define the flow of information between nodes. Key capabilities include:
+\begin{itemize}
+    \item \textbf{Typed State:} A shared state object is passed through the graph, with each node reading from and writing to specific state fields. Type annotations ensure correctness at development time.
+    \item \textbf{Conditional Routing:} Edge conditions can route execution to different nodes based on the current state (e.g., routing to the Refiner if the Critic identified issues, or directly to output if the extraction is satisfactory).
+    \item \textbf{Parallel Execution:} Multiple nodes can execute concurrently when they do not depend on each other's outputs, enabling efficient implementation of parallel council architectures.
+    \item \textbf{Persistence:} Graph state can be checkpointed and restored, enabling human-in-the-loop workflows and fault-tolerant execution.
+\end{itemize}
+
+\subsubsection{Pydantic-AI}
+\label{sec:pydanticai-detail}
+
+Pydantic-AI~\cite{pydanticai2024} complements LangGraph by providing a \textit{model-agnostic} agent abstraction layer. Key design principles include:
+\begin{itemize}
+    \item \textbf{Model Agnosticism:} The same agent definition works across different LLM providers (OpenAI, Anthropic, AWS Bedrock, local models) with only configuration changes. This enables seamless migration between backends---a capability we leveraged when transitioning from Claude Sonnet 4.5 to GPT-5.2.
+    \item \textbf{Typed Structured Outputs:} Agent result types are defined as Python dataclasses with type annotations. Pydantic-AI automatically enforces schema constraints during generation, eliminating JSON parsing failures.
+    \item \textbf{Dependency Injection:} Runtime context (e.g., RAG results, forensic statistics) is injected into agents through a typed dependency system, enabling clean separation between agent logic and external data sources.
+    \item \textbf{Tool Integration:} Agents can invoke typed Python functions as tools, with automatic argument validation and result parsing.
+\end{itemize}
+
+The combination of LangGraph for workflow orchestration and Pydantic-AI for agent implementation provides a robust foundation for building complex, multi-agent NLP systems.
+
+\subsubsection{AG2 (AutoGen)}
+
+AG2 (formerly AutoGen)~\cite{wu2023autogen} is Microsoft's open-source framework for building multi-agent conversational AI systems. AG2 introduces the concept of \textit{conversable agents} that autonomously coordinate through natural language dialogue. Key features include:
+\begin{itemize}
+    \item \textbf{Conversable agents:} Each agent can send and receive messages, execute code, invoke tools, and delegate to other agents. The framework supports both LLM-backed and programmatic agents.
+    \item \textbf{Conversation patterns:} AG2 provides built-in patterns for two-agent chat, group chat (with automatic speaker selection), and sequential multi-agent workflows.
+    \item \textbf{Human-in-the-loop:} Native support for human proxy agents that can intervene at any point in the conversation flow.
+    \item \textbf{Code execution:} Built-in sandboxed code execution environments for agents that generate and run code as part of their reasoning.
+\end{itemize}
+
+\subsubsection{Semantic Kernel}
+
+Semantic Kernel~\cite{semantickernel2024} is Microsoft's enterprise-grade AI orchestration SDK that provides a unified programming model across C\#, Python, and Java. Its plugin architecture enables modular composition of AI capabilities:
+\begin{itemize}
+    \item \textbf{Plugin system:} Skills are packaged as plugins with semantic descriptions, enabling automatic function selection by the LLM planner.
+    \item \textbf{Kernel abstraction:} A central kernel manages AI services, plugins, and memory, providing dependency injection for complex enterprise applications.
+    \item \textbf{Process Framework:} A visual workflow engine for defining multi-step business processes that combine AI and traditional logic.
+\end{itemize}
+
+\subsubsection{Google Agent Development Kit (ADK)}
+
+Google's Agent Development Kit (ADK)~\cite{googleadk2025} is an open-source framework for building multi-agent systems with a focus on composability and interoperability:
+\begin{itemize}
+    \item \textbf{Model agnosticism:} Agents can use any LLM backend (Gemini, GPT, Claude, open-source models) through a unified interface.
+    \item \textbf{Hierarchical agent composition:} Agents can be composed hierarchically, where parent agents delegate sub-tasks to child agents, enabling complex workflow decomposition.
+    \item \textbf{Agent-to-Agent (A2A) protocol:} An open protocol for inter-agent communication that enables agents built with different frameworks to collaborate.
+    \item \textbf{Built-in tools:} Native integration with Google Search, code execution, and Vertex AI services.
+\end{itemize}
+
+\subsubsection{OpenAI Agents SDK}
+
+The OpenAI Agents SDK~\cite{openaiagents2025} is a production-ready framework that evolved from the experimental Swarm project. It provides lightweight primitives for building robust agentic applications:
+\begin{itemize}
+    \item \textbf{Agents:} LLM-backed entities with instructions, tools, and handoff capabilities, configured through simple Python classes.
+    \item \textbf{Handoffs:} A mechanism for agents to transfer control to other agents when a task falls outside their specialization, enabling modular agent design.
+    \item \textbf{Guardrails:} Built-in input and output validation that runs in parallel with agent execution, providing safety boundaries without latency overhead.
+    \item \textbf{Tracing:} Native observability through an OpenTelemetry-compatible tracing system for debugging and monitoring multi-agent workflows.
+\end{itemize}
+
+\subsubsection{SmolAgents}
+
+SmolAgents~\cite{smolagents2025} is Hugging Face's lightweight agent library designed for simplicity and rapid prototyping. Unlike the heavier frameworks above, SmolAgents emphasizes a minimal API surface:
+\begin{itemize}
+    \item \textbf{Code agents:} Agents that write and execute Python code as their primary action mechanism, rather than relying on rigid tool-calling schemas.
+    \item \textbf{Hub integration:} Seamless access to Hugging Face Hub models, datasets, and tools as agent capabilities.
+    \item \textbf{Minimal abstraction:} A deliberately thin wrapper that avoids framework lock-in, making it easy to understand and extend.
+\end{itemize}
+
+
+\subsection{Agentic Patterns and Architectures}
+\label{sec:agentic-patterns}
+
+Beyond specific frameworks, several design patterns have emerged as reusable architectural building blocks for agentic systems:
+
+\subsubsection{Swarm and Handoff Patterns}
+
+The \textit{Swarm} pattern~\cite{openaiagents2025} models multi-agent collaboration as a network of specialized agents that transfer control through explicit \textit{handoffs}. Each agent is designed for a narrow capability and ``hands off'' to the appropriate peer when it encounters a task outside its scope. This pattern reduces complexity per agent while enabling the swarm to handle diverse tasks. Key design considerations include:
+\begin{itemize}
+    \item \textbf{Routing logic:} Handoff decisions can be model-driven (the LLM decides which agent to delegate to) or rule-based (deterministic condition checks).
+    \item \textbf{Context transfer:} When handing off, the current agent's conversation history and intermediate results must be selectively transferred to avoid context pollution.
+\end{itemize}
+
+\subsubsection{Human-in-the-Loop (HITL)}
+
+Human-in-the-loop patterns insert human oversight at critical decision points in the agentic pipeline. Common HITL configurations include:
+\begin{itemize}
+    \item \textbf{Approval gates:} Execution pauses for human approval before high-stakes actions (e.g., database modifications, external API calls).
+    \item \textbf{Feedback injection:} Humans provide corrective feedback that the agent incorporates into subsequent iterations.
+    \item \textbf{Escalation:} Agents automatically escalate to human operators when confidence is low or when edge cases are detected.
+\end{itemize}
+
+\subsubsection{Common Agent Architectures}
+
+Several architectural patterns have been identified as recurring solutions for different classes of agentic tasks:
+
+\paragraph*{Router.} A routing agent examines the incoming request and dispatches it to the most appropriate specialized agent based on the detected intent or task type. The router itself performs no substantial reasoning; its sole purpose is classification and delegation. This pattern is efficient for multi-domain systems where different tasks require fundamentally different capabilities.
+
+\paragraph*{Orchestrator.} An orchestrator agent maintains a high-level plan and coordinates multiple worker agents to execute sub-tasks. Unlike the router (which delegates once), the orchestrator actively monitors progress, adjusts the plan, and aggregates results. Our S1 pipeline's Self-Refine loop implements an orchestration pattern where the workflow graph coordinates the Generator, Critic, Refiner, and Verifier in a structured cycle.
+
+\paragraph*{Reflection and Self-Correction.} The reflection pattern involves an agent evaluating its own output against quality criteria and iteratively improving it. This can be implemented as a single agent that re-examines its response or as two agents (generator + critic) in a feedback loop. Reflexion~\cite{shinn2023reflexion} formalizes this pattern by storing verbal feedback from failed attempts in episodic memory. Our GEPA reflector (Section~\ref{sec:gepa-details}) implements a variant of this pattern for prompt optimization.
+
+\paragraph*{Planner-Driven Execution.} In this architecture, a planning agent first decomposes a complex task into a structured plan (often as a sequence of steps with dependencies), and then an executor agent carries out each step sequentially or in parallel. The planner can revise the plan based on execution results, enabling dynamic adaptation. This is analogous to classical AI planning but uses LLMs for both plan generation and execution.
+
+
+\subsection{Evaluation and Optimization Frameworks}
+\label{sec:eval-opt-frameworks}
+
+The increasing complexity of LLM pipelines has created demand for systematic evaluation and optimization frameworks.
+
+\subsubsection{RAGAS}
+
+RAGAS (Retrieval-Augmented Generation Assessment)~\cite{es2024ragas} provides a reference-free evaluation framework for RAG pipelines. Unlike traditional QA evaluation that requires gold-standard answers, RAGAS enables automated assessment through component-level metrics:
+\begin{itemize}
+    \item \textbf{Faithfulness:} Measures whether the generated answer is grounded in the retrieved context, detecting hallucinated claims.
+    \item \textbf{Answer Relevance:} Evaluates whether the answer addresses the original question, penalizing incomplete or off-topic responses.
+    \item \textbf{Context Precision/Recall:} Assesses retrieval quality by measuring whether the relevant information appears in the retrieved context.
+\end{itemize}
+RAGAS uses LLM-based evaluation with carefully designed prompts to assess each metric, enabling continuous monitoring of RAG system quality without manual annotation.
+
+\subsubsection{DSPy}
+
+DSPy~\cite{khattab2024dspy} treats LLM pipeline development as a \textit{programming} rather than \textit{prompting} problem. Instead of manually crafting prompts, developers define:
+\begin{itemize}
+    \item \textbf{Signatures:} Declarative input-output specifications (e.g., ``question $\to$ answer'') that abstract away prompt engineering.
+    \item \textbf{Modules:} Composable building blocks (ChainOfThought, RetrieveAndRead, Predict) that can be stacked into complex pipelines.
+    \item \textbf{Optimizers (Teleprompters):} Automated algorithms that compile signatures and modules into optimized prompts by bootstrapping few-shot demonstrations from training examples.
+\end{itemize}
+DSPy's declarative approach enables systematic optimization of LLM pipelines---similar in spirit to our GEPA framework, but operating at the module-composition level rather than the prompt-text level.
+
+
+\subsection{Retrieval-Augmented Generation}
+\label{sec:rag-background}
+
+Retrieval-Augmented Generation (RAG)~\cite{lewis2020rag} addresses a fundamental limitation of LLMs: their knowledge is frozen at training time and may be incomplete, outdated, or insufficient for specialized domains. RAG augments the LLM's generation process by retrieving relevant information from external knowledge bases at inference time.
+
+\subsubsection{RAG Pipeline Architecture}
+
+A standard RAG pipeline consists of three stages:
+\begin{enumerate}
+    \item \textbf{Indexing:} Documents are preprocessed, chunked, and embedded into dense vector representations using an embedding model (e.g., OpenAI \texttt{text-embedding-3-small} or \texttt{all-MiniLM-L6-v2}).
+    \item \textbf{Retrieval:} Given a query, the system retrieves the $k$ most similar documents from the vector store using approximate nearest-neighbor search.
+    \item \textbf{Generation:} Retrieved documents are injected into the LLM prompt as context, grounding the generation in relevant external knowledge.
+\end{enumerate}
+
+\subsubsection{Vector Databases}
+
+Vector databases provide specialized storage and retrieval infrastructure for high-dimensional embedding vectors. Unlike traditional databases that operate on structured queries, vector databases support similarity-based retrieval through distance metrics such as cosine similarity, Euclidean distance, or inner product.
+
+ChromaDB~\cite{chromadb2023} is an open-source, AI-native embedding database designed for simplicity and developer experience. Key features include:
+\begin{itemize}
+    \item \textbf{Persistent Storage:} Collections persist across sessions, eliminating redundant re-indexing.
+    \item \textbf{Metadata Filtering:} Documents can be filtered by metadata attributes (e.g., label, source, difficulty) before or during similarity search, enabling targeted retrieval.
+    \item \textbf{Integration:} Native integration with popular embedding models and LLM frameworks, including LangChain and Pydantic-AI.
+\end{itemize}
+
+Other notable vector databases include Pinecone (fully managed cloud service), Weaviate (schema-aware with hybrid search), FAISS (Meta's library for efficient similarity search in dense vectors), and Milvus (designed for billion-scale vector data).
+
+\subsubsection{Retrieval Strategies}
+
+The quality of retrieved documents critically impacts RAG performance. Several strategies have been developed to improve retrieval relevance:
+
+\paragraph{Semantic Similarity Retrieval.} The baseline approach retrieves documents whose embeddings are closest to the query embedding in vector space. While effective for general-purpose retrieval, this approach tends to return documents that are topically similar but may not be discriminatively useful.
+
+\paragraph{Maximal Marginal Relevance (MMR).} MMR~\cite{carbonell1998use} balances relevance against diversity by penalizing retrieved documents that are too similar to already-selected documents:
+\begin{equation}
+    \text{MMR} = \arg\max_{D_i \in R \setminus S} \left[ \lambda \cdot \text{Sim}(D_i, Q) - (1-\lambda) \cdot \max_{D_j \in S} \text{Sim}(D_i, D_j) \right]
+\end{equation}
+where $\lambda$ controls the relevance-diversity trade-off, $Q$ is the query, $R$ is the candidate set, and $S$ is the set of already-selected documents. Higher $\lambda$ values prioritize relevance, while lower values encourage diversity.
+
+\paragraph{Stratified Sampling.} When the document collection exhibits class imbalance, random retrieval may under-represent rare categories. Stratified sampling ensures that each class is proportionally represented in the retrieved set, which is particularly important for few-shot example construction.
+
+\paragraph{Contrastive Retrieval.} Unlike standard retrieval that optimizes for similarity, contrastive retrieval prioritizes \textit{discriminative} examples---documents that are semantically similar to the query but belong to different classes. This approach teaches the model fine-grained distinctions rather than surface-level pattern matching, and is central to our system's RAG strategy (Section~\ref{sec:rag-detail}).
+
+\subsubsection{Reranking}
+\label{sec:reranking-bg}
+
+Initial retrieval using bi-encoders optimizes for speed but may sacrifice precision. \textit{Reranking} applies a more computationally expensive model to re-score and reorder the initial results, significantly improving the quality of the final retrieved set~\cite{nogueira2020passage}.
+
+\paragraph{Cross-Encoder Reranking.} Cross-encoders process the query and each candidate document \textit{jointly} through a Transformer encoder, enabling full cross-attention between query and document tokens. This captures subtle interactions---negation, word order, contextual dependencies---that bi-encoders miss. The trade-off is computational cost: cross-encoders must process each query-document pair independently, making them $O(n)$ in the number of candidates versus the $O(1)$ embedding lookup of bi-encoders. In practice, cross-encoders are applied to rerank the top-$k$ candidates from bi-encoder retrieval (typically $k = 50$--$100$), achieving 20--35\% accuracy improvement~\cite{gao2024ragsurvey}.
+
+Models such as \texttt{BAAI/bge-reranker-v2-m3} provide multilingual cross-encoder reranking capabilities and are used in our system for refining RAG results.
+
+\paragraph{LLM-Based Reranking.} Recent work has explored using large language models themselves as rerankers, leveraging their advanced language understanding to score document relevance. While even more accurate than cross-encoders, LLM-based reranking incurs substantially higher computational costs and latency.
+
+\paragraph{Hybrid Retrieval-Reranking Pipeline.} The most effective approach combines multiple stages:
+\begin{enumerate}
+    \item \textbf{Sparse retrieval} (BM25): Keyword-based candidate generation.
+    \item \textbf{Dense retrieval} (bi-encoder): Semantic similarity-based candidate expansion.
+    \item \textbf{Cross-encoder reranking}: Fine-grained relevance scoring of the combined candidate set.
+    \item \textbf{Stratified selection}: Class-balanced sampling from the reranked results.
+\end{enumerate}
+
+This multi-stage pipeline balances retrieval coverage, semantic relevance, and computational efficiency.
+
+
+\subsection{Automated Prompt Optimization}
+\label{sec:apo-background}
+
+While manual prompt engineering can yield significant improvements, it is time-consuming, subjective, and difficult to scale. \textit{Automated Prompt Optimization} (APO) treats prompt design as a search problem over the space of natural language instructions, using algorithmic methods to discover high-performing prompts systematically.
+
+\subsubsection{Evolutionary Approaches}
+
+Evolutionary algorithms have proven particularly effective for prompt optimization because they operate on discrete natural language strings---the native representation of prompts:
+
+\paragraph{EvoPrompt.} Guo et al.~\cite{guo2024evoprompt} demonstrated that connecting LLMs with evolutionary algorithms yields powerful prompt optimizers. EvoPrompt maintains a population of prompt variants, evaluates their fitness on a validation set, and uses LLM-guided mutation and crossover to generate new candidates. This approach outperforms both manual prompt engineering and gradient-based optimization methods on multiple benchmarks.
+
+\paragraph{OPRO.} Yang et al.~\cite{yang2024opro} introduced Optimization by PROmpting (OPRO), where an LLM serves as both the optimizer and the solution generator. A ``meta-prompt'' describes the optimization task including previous solutions and their scores, and the LLM generates new candidate prompts informed by this history. This approach leverages the LLM's ability to identify patterns in successful and unsuccessful prompts.
+
+\subsubsection{The GEPA Framework}
+
+Our system uses the Genetic Evolution Prompt Algorithm (GEPA), integrated with MLflow for experiment tracking. GEPA extends evolutionary prompt optimization with:
+\begin{itemize}
+    \item \textbf{Reflection-based mutation:} Rather than random perturbation, a ``reflector'' LLM analyzes failure patterns and proposes targeted edits.
+    \item \textbf{Rich diagnostic scoring:} Fitness functions return structured feedback (not just numeric scores), enabling the reflector to make informed modifications.
+    \item \textbf{Phased optimization:} Pipeline components are optimized independently to reduce search space complexity.
+\end{itemize}
+
+The details of our GEPA implementation, including the ``Trojan Horse'' pattern for label passthrough and the phased optimization strategy, are discussed in Section~\ref{sec:gepa-details}.
+
+
+\subsection{Tool Use and Function Calling}
+\label{sec:tool-use-bg}
+
+A defining capability of agentic LLM systems is the ability to invoke external tools---executable functions that extend the model's capabilities beyond pure text generation. Tool use transforms LLMs from passive text generators into active problem-solvers capable of performing computation, accessing databases, and interacting with external APIs.
+
+\subsubsection{Tool Integration Patterns}
+
+Modern LLM APIs support several patterns for tool integration:
+\begin{itemize}
+    \item \textbf{Function calling:} The LLM is provided with typed function signatures (name, description, parameter schema) and can ``call'' functions by generating structured arguments. The framework executes the function and returns the result to the LLM for further reasoning. This pattern is used by OpenAI, Anthropic, and Google's APIs.
+    \item \textbf{Code generation and execution:} The LLM generates executable code (e.g., Python) that is run in a sandboxed environment, with results returned as observations. This approach provides maximum flexibility but requires careful security sandboxing.
+    \item \textbf{Retrieval as a tool:} RAG can be framed as a tool that the agent invokes when it determines that external information is needed, rather than automatically prepending retrieved context to every prompt. This ``active retrieval'' approach reduces unnecessary context injection and improves efficiency~\cite{jiang2023activeretrievalaugmented}.
+\end{itemize}
+
+In our system, the Deterministic Verifier operates as a deterministic tool invoked by the orchestrator after LLM-based span generation. Unlike LLM-generated outputs, tool outputs provide structural guarantees (e.g., valid character offsets, verified span boundaries) that are essential for downstream processing.
+
+\subsubsection{The Model Context Protocol (MCP)}
+
+While the tool integration patterns described above are effective, each LLM provider historically implemented its own tool-calling API with proprietary schemas, creating fragmentation across the ecosystem. The \textbf{Model Context Protocol (MCP)}~\cite{anthropic2024mcp} addresses this by providing an open standard---analogous to the Language Server Protocol (LSP) for code editors---that standardizes how AI applications discover and interact with external tools and data sources.
+
+MCP defines a client-server architecture using JSON-RPC 2.0 as its transport layer:
+\begin{itemize}
+    \item \textbf{MCP Hosts:} AI applications (e.g., Claude Desktop, IDE assistants) that initiate connections to MCP servers and expose their capabilities to the LLM.
+    \item \textbf{MCP Servers:} Lightweight programs that expose three core primitives:
+    \begin{itemize}
+        \item \textit{Tools:} Executable functions with typed parameters (analogous to function calling, but with a standardized discovery and invocation protocol).
+        \item \textit{Resources:} Read-only data sources (files, database records, API responses) that provide context without side effects.
+        \item \textit{Prompts:} Reusable prompt templates that servers can expose for common interaction patterns.
+    \end{itemize}
+    \item \textbf{Transport:} MCP supports both local communication via standard I/O (STDIO) for desktop integrations and network-based communication via HTTP with Server-Sent Events (SSE) for remote deployments.
+\end{itemize}
+
+Since its open-source release in November 2024, MCP has achieved broad adoption: OpenAI integrated it across ChatGPT and the Agents SDK, Google adopted it for the Agent Development Kit, and frameworks like LangChain and Hugging Face added native MCP support. In December 2025, Anthropic donated MCP governance to the Agentic AI Foundation under the Linux Foundation, co-founded with Block and OpenAI, signaling its emergence as an industry-wide standard for agent-tool interoperability.
+
+\subsection{Agent Memory and Planning}
+\label{sec:memory-planning-bg}
+
+Effective agent systems require memory mechanisms that persist information across reasoning steps and enable long-horizon planning.
+
+\subsubsection{Memory Architectures}
+
+Agent memory can be categorized into three types:
+\begin{itemize}
+    \item \textbf{Short-term (working) memory:} The current context window, containing the conversation history, retrieved documents, and intermediate results. This memory is ephemeral and bounded by the context window size.
+    \item \textbf{Long-term memory:} Persistent storage (e.g., vector databases, key-value stores) that retains information across sessions. In our system, the ChromaDB-backed RAG component serves as long-term memory, persistently storing embedded training examples for retrieval.
+    \item \textbf{Episodic memory:} Records of past interactions or task executions that inform future behavior. MLflow experiment tracking in our GEPA optimization serves an episodic memory function, allowing the evolutionary algorithm to build upon successful prompt configurations from previous generations.
+\end{itemize}
+
+\subsubsection{Planning Strategies}
+
+Recent work has shown that explicit planning improves agent task completion rates:
+\begin{itemize}
+    \item \textbf{Plan-and-Solve}~\cite{wang2023plansolve}: The agent first generates a high-level plan decomposing the task into sub-steps, then executes each sub-step sequentially. This mirrors our pipeline's fixed decomposition (Generate $\to$ Critique $\to$ Refine $\to$ Verify for S1; Profile $\to$ Council $\to$ Judge for S2).
+    \item \textbf{Reflexion}~\cite{shinn2023reflexion}: The agent reflects on past failures by storing verbal feedback in memory and incorporating it into subsequent attempts. Our GEPA reflector implements a variant of this pattern, where failure analysis from previous generations informs the mutation strategy for prompt optimization.
+\end{itemize}
+
+
+\subsection{Hybrid Search}
+\label{sec:hybrid-search-bg}
+
+Hybrid search combines the complementary strengths of sparse (keyword-based) and dense (embedding-based) retrieval to improve recall and precision in document retrieval.
+
+\subsubsection{Sparse Retrieval: BM25}
+
+BM25 (Best Matching 25) is a probabilistic ranking function based on term frequency and inverse document frequency:
+\begin{equation}
+    \text{BM25}(Q, D) = \sum_{i=1}^{n} \text{IDF}(q_i) \cdot \frac{f(q_i, D) \cdot (k_1 + 1)}{f(q_i, D) + k_1 \cdot (1 - b + b \cdot \frac{|D|}{\text{avgdl}})}
+\end{equation}
+where $f(q_i, D)$ is the term frequency of query term $q_i$ in document $D$, $|D|$ is the document length, $\text{avgdl}$ is the average document length, and $k_1$ and $b$ are tunable parameters. BM25 excels at retrieving documents with exact lexical matches but fails on semantic paraphrases.
+
+\subsubsection{Fusion Strategies}
+
+The most common approach to combining sparse and dense retrieval scores is \textbf{Reciprocal Rank Fusion (RRF)}:
+\begin{equation}
+    \text{RRF}(d) = \sum_{r \in R} \frac{1}{k + r(d)}
+\end{equation}
+where $r(d)$ is the rank of document $d$ in ranking $r$, $R$ is the set of rankings to fuse, and $k$ is a constant (typically 60) that controls the influence of lower-ranked documents. RRF is attractive because it requires no score normalization and is robust to differences in score distributions between rankers.
+
+Our RAG pipeline employs dense retrieval with cross-encoder reranking rather than full hybrid search, as the conspiracy detection domain benefits more from semantic similarity (capturing paraphrased conspiracy narratives) than lexical matching. However, hybrid search remains a promising extension for improving retrieval of documents with domain-specific jargon.
+

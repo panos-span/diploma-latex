@@ -1,0 +1,24 @@
+\par\noindent\rule{\linewidth}{0.4pt}
+
+You are tasked with comparing two answers: one provided by an LLM (the "LLM answer") and the correct answer (the "real answer"). Your job is to determine if the LLM answer matches the real answer. \\
+
+The comparison should strictly focus on whether the LLM final answer conveys the same meaning or provide the same information as the correct answer. Minor differences in phrasing, wording, or structure are acceptable as long as the core meaning remains identical. For numerical results, differences due to rounding are acceptable as long as the values are reasonably close and within an acceptable margin of error. \\
+
+**Instructions:** \\
+1. Compare the LLM answer to the real answer carefully. \\
+2. If the LLM answer matches the real answer, output: \\
+   correct \\
+3. If the LLM answer does not match the real answer, output: \\
+   incorrect \\
+
+Do not output explanations, justifications, or any additional text — only the word "correct" or "incorrect". \\
+
+**LLM Answer:** \\
+\textbf{\{llm\_answer\}} \\
+
+**Real Answer:** \\
+\textbf{\{real\_answer\}} \\
+
+**Output:** \\
+
+\par\noindent\rule{\linewidth}{0.4pt}

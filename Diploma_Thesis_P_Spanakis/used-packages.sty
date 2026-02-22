@@ -1,0 +1,143 @@
+\def\linkToHome{packages/}
+\RequirePackage{ifxetex}
+\ifxetex
+  % xelatex: Unicode-native, no alphabeta needed
+\else
+  \RequirePackage{alphabeta}
+\fi
+\RequirePackage[greek,english]{babel}
+
+\RequirePackage[
+ margin=2.5cm, 
+ bmargin=2cm, 
+]{geometry}
+
+\RequirePackage{afterpage}
+\RequirePackage{datetime}
+\ifxetex
+  \RequirePackage{fontspec}
+  % CMU fonts cover Greek Unicode glyphs (lmroman does not).
+  % Setting them as main fonts ensures fallback support even in English mode.
+  \setmainfont{CMU Serif}
+  \setsansfont{CMU Bright}
+  \setmonofont{CMU Typewriter Text}
+  
+  \babelfont[greek]{rm}{CMU Serif}
+  \babelfont[greek]{sf}{CMU Bright}
+  \babelfont[greek]{tt}{CMU Typewriter Text}
+\else
+  \RequirePackage[utf8]{inputenc}
+  \RequirePackage[LGR,T1]{fontenc}
+  \RequirePackage{lmodern}
+\fi
+\RequirePackage{amsmath} % Equations
+\RequirePackage{amssymb} % Equations
+\RequirePackage{amsthm}
+\RequirePackage{upquote} % Upright quotes for verbatim code
+% \RequirePackage{pgfmath}
+\RequirePackage{standalone}
+\RequirePackage{float}
+\RequirePackage[normalem]{ulem}
+\RequirePackage{subcaption}
+\RequirePackage{mathtools}
+\RequirePackage{csquotes}
+\RequirePackage{pdfpages}
+\RequirePackage{booktabs}
+\RequirePackage{optidef}
+\RequirePackage{mwe}
+\RequirePackage[justification=centering]{caption}
+\RequirePackage{fancyhdr}
+\RequirePackage{bbm}
+\RequirePackage{dsfont}
+\RequirePackage[]{parskip}
+% \RequirePackage{bookmark}
+
+\RequirePackage{multirow}
+\RequirePackage{booktabs}
+\RequirePackage{colortbl}
+\RequirePackage{xcolor}
+
+\RequirePackage{minitoc}
+\RequirePackage{multicol}
+
+% === Packages required by thesis chapters ===
+\RequirePackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, fit, backgrounds, calc}
+\RequirePackage{listings}
+\lstset{
+  basicstyle=\footnotesize\ttfamily,
+  breaklines=true,
+  frame=single,
+  xleftmargin=2em,
+  framexleftmargin=1.5em,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  captionpos=b,
+}
+\RequirePackage{enumitem}
+\RequirePackage[most]{tcolorbox}
+
+\RequirePackage[pdfencoding=unicode]{hyperref}
+\hypersetup{
+   colorlinks,
+   citecolor = blue,
+   filecolor = black,
+   linkcolor = blue,
+   urlcolor = blue
+}
+
+\RequirePackage{bookmark}
+
+% ======================================================
+\RequirePackage[linesnumbered,ruled,vlined,]{algorithm2e}
+\newcommand\mycommfont[1]{\footnotesize\ttfamily\textcolor{blue}{#1}}
+\SetCommentSty{mycommfont}
+\SetKwComment{Comment}{$\triangleright$\ }{}
+% ======================================================
+
+\numberwithin{equation}{section}
+
+
+% ======================================================
+% 
+%	CUSTOM STYLES
+%
+% ======================================================
+\RequirePackage{\linkToHome environments}
+% \RequirePackage{\linkToHome commands}
+\RequirePackage{\linkToHome math-commands}
+
+
+
+% \addto\captionsenglish{% Replace "english" with the language you use
+% 	\renewcommand{\contentsname}{Περιεχόμενα}%
+% 	\renewcommand{\figurename}{Σχήμα}
+% 	\renewcommand{\tablename}{Πίνακας}
+% 	\renewcommand{\listfigurename}{Λίστα Σχημάτων}%
+% 	\renewcommand{\listtablename}{Κατάλογος Πινάκων}
+% 	\renewcommand{\appendixname}{Παράρτημα}
+% 	\renewcommand{\refname}{Βιβλιογραφία}%
+% 	\renewcommand{\mtctitle}{mm}
+% }
+
+
+\counterwithin{figure}{section}
+\makeatletter
+% \renewcommand{\@chapapp}{Κεφάλαιο}
+\renewcommand{\footrulewidth}{0.4pt}
+\setlength{\footskip}{20pt}
+\makeatother
+
+
+
+
+
+
+
+
+
+
+
+
+
+

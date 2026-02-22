@@ -1,0 +1,355 @@
+\section{Introduction to Large Language Models}
+
+\subsection{Framework and Objective}
+
+
+Large Language Models (LLMs) are a class of artificial intelligence systems trained to understand and generate human language by learning from massive corpora of data. At their core, LLMs are based on deep learning architectures--most importantly on the \textit{Transformer} architecture, which, once introduced by Vaswani et al. \cite{vaswani2023attentionneed} in 2017, has fundamentally revolutionized the field of Natural Language Processing (NLP) \cite{nlp}. Transformers employ \textit{self-attention} mechanisms that enable the model to compute in parallel context-aware representations for each word in a sentence or document that accurately represent the contextual relationships between them, regardless of their positional distance \cite{llmsurvey}. This extensive parallelization dramatically improves large-scale training efficiency on modern hardware (e.g., GPUs), in comparison to earlier standard model architectures such as Recurrent Neural Networks (RNNs) \cite{rnns} and Long Short-Term Memory networks (LSTMs) (\cite{lstms}; \cite{Sherstinsky_2020}). Before being processed by an LLM, input text is segmented into indivisible units known as \textit{tokens} \cite{10.3115/992424.992434}. Depending on the tokenization process, each token can represent a character, symbol, word, or subword. Some of the most commonly used methods include Byte Pair Encoding (BPE) \cite{byte}, WordPiece \cite{word}, SentencePiece \cite{sentence}, and unigramLM \cite{uni}. LLMs are ultimately trained to predict the next word in a sentence by assigning probabilities to each token in a given sequence. Formally, an LLM models the conditional probability distribution \cite{NIPS2000_728f206c}: \[
+    P(w_t \mid w_1, w_2, \ldots, w_{t-1})
+\]
+
+The training process of an LLM typically involves tens to hundreds of billions of parameters and leverages \textit{self-supervised} learning \cite{article}. Two primary pretraining approaches are typically used: Autoregressive Language Modeling, where the model predicts the next token given the preceding ones in an auto-regressive manner, and Masked Language Modeling, in which certain tokens are masked and the model learns to predict these masked tokens based on surrounding context \cite{llmsurvey}. Notably, pretraining alone enables LLMs to demonstrate impressive results across a broad spectrum of tasks (\cite{brown2020languagemodelsfewshotlearners}; \cite{chowdhery2022palmscalinglanguagemodeling}). However, in many cases, additional \textit{fine-tuning} is applied in order to enhance performance on specific scenarios or to better align model outputs with human preferences \cite{llmoverview}. Depending on the use case requirements, different fine-tuning techniques may be applied. In Transfer Learning (\cite{transferlearningsurvey}; \cite{transferlearning}), LLMs are further trained on task-specific data, allowing them to adapt to particular applications. Instruction Tuning (\cite{instructiontuninglargelanguage}; \cite{instruction}; \cite{finetunedlanguagemodelszeroshot}) involves training on datasets formatted as instructions-output pairs, guiding the model toward more predictable and user-aligned responses to natural-language prompts. On the other hand, Alignment Tuning \cite{alignment} uses human feedback to update their parameters, aiming to prevent the generation of false, biased, and harmful content. A common approach to model alignment is Reinforcement Learning with Human Feedback (RLHF) \cite{rlhf}, where a model fine-tuned on human demonstrations is further optimized using reward modeling (RM) and reinforcement learning (RL).
+
+Unlike preceding language models, which primarily aimed to generate text data, the objective of LLMs is not merely to be able to mimic human language convincingly, but to engage in complex tasks, ranging from translation and summarization to question answering and even reasoning, marking an important leap from language modeling to task solving \cite{raptopoulos2025paktonmultiagentframeworkquestion, kritharoula2023languagemodelsknowledgebases, filandrianos2025biasbewareimpactcognitive, evangelatos2025ailsntuasemeval2025task8, thomas-etal-2024-never, panagiotopoulos-etal-2025-riscore, 10.1007/978-3-031-91569-7_18, kritharoula-etal-2023-large, mushroom}. As the current frontier in the language model evolution process, LLMs are increasingly characterized as \textit{general-purpose task solvers} \cite{surveylargelanguagemodels}. In fact, these models have not only extended machine capabilities to a significantly wider scope of applications, but also achieved performance that approaches--and in some domains, even surpasses--human-level performance.
+
+
+
+\subsection{Parameters and Scaling Laws}
+
+In the context of Large Language Models, \textit{parameters} refer to the learnable, input-independent settings--typically weights and biases--within the neural network layers that evolve during the training process to optimize output predictions. These are basically the core components that shape the LLM's abilities to recognize patterns and map complex relationships between words and phrases in the training data, ultimately establishing the transformation from input to output. Each parameter is represented by a numerical value that is initially set either randomly (during pretraining) or based on previous training (during finetuning) and then adjusted in order to minimize prediction error \cite{parameters}. In Transformer-based architectures, which underpin most LLMs, parameters are distributed across multiple layers and attention heads, enabling the model to jointly attend to information from different parts of the input \cite{vaswani2023attentionneed}. The total number of parameters typically represents the model's \textit{capacity}, meaning that larger LLMs potentially are able to "fit" more intricate relationships and knowledge of the training data.
+
+\begin{figure}[H]
+    \vskip -0.01in
+    \centering
+    \includegraphics[width=0.97\linewidth]{images/scaling_laws.png}
+    \caption{Empirical scaling laws showing power-law relationships between model performance and compute, dataset size, and parameter size. \cite{scalinglawsneurallanguage}.} \label{fig:scaling}
+    \vskip -0.09in
+\end{figure}
+
+Even though larger capacity is not technically directly translated to better results, research on language modeling has evidently shown that there is a strong relationship between scale and model performance, with larger models performing increasingly better across a wide range of tasks (\cite{Radford2019LanguageMA}; \cite{chowdhery2022palmscalinglanguagemodeling}). This consistent observation has been formalized with the introduction of empirical \textit{scaling laws}, which describe how performance improves predictably as model size, dataset size, and compute power increase within reasonable limits. In their study, Kaplan et al. \cite{scalinglawsneurallanguage} demonstrated that test loss declines in a smooth power-law fashion with respect to these three attributes, which together define the \textit{model scale} (Figure \ref{fig:scaling}). In addition, their findings revealed that larger models are more sample efficient, suggesting that training large models on relatively modest data could be optimal. A later variant of the scaling laws, proposed by Hoffmann et al. \cite{hoffmann2022trainingcomputeoptimallargelanguage}, aimed to instruct the compute-optimal training for LLMs and, after conducting an extensive set of experiments on various model and data sizes, found a very similar relationship between model performance and scale factors, only questioning earlier claims about the model and data size increase ratio that achieves optimal results. Specifically, they argued that these should scale equally, rather than prioritizing model size over the number of training tokens. Nevertheless, with these promises of consistent and predictable improvements through parameter growth, scaling laws have become a crucial design principle in the rapid development of ever-larger and more powerful state-of-the-art LLMs.
+
+
+
+
+
+\subsection{Capabilities and Emergent Behaviors}
+
+Trained on extensive and diverse text corpora, LLMs have achieved state-of-the-art performance across a variety of standard natural language processing (NLP) tasks such as machine translation (\cite{translation1}; \cite{translation2}), text summarization (\cite{sum-benchmarking}; \cite{summarizationalmost}), sentiment analysis (\cite{sentiment1}; \cite{sentiment2}), text classification (\cite{textclassification}; \cite{largelanguagemodelstext}; \cite{largelanguagemodelszeroshottext}), and question answering (\cite{qa1}; \cite{qa2}). Beyond these traditional applications, LLMs have demonstrated impressive potential to serve as implicit knowledge bases, as they not only manage to retrieve factual information without relying on external data, but also offer key advantages like flexibility and extendability, without requiring schema engineering or human supervision (\cite{kb1}; \cite{kb2}). Research has also explored the use of these models within LLM-based multi-agent environments, where multiple LLMs are assigned specialized roles and collaborate to tackle more complex and vague problems through coordinated interaction (\cite{agent1}; \cite{agent2}; \cite{agent3}). Additionally, ongoing advancements have extended their functionality to multimodal domains, where models address tasks involving different modalities such as image, audio, and video (\cite{modal1}; \cite{modal2}).
+
+
+\begin{figure}[H]
+    \vskip -0.01in
+    \centering
+    \includegraphics[width=0.97\linewidth]{images/emergent.png}
+    \caption{Emergent abilities of LLMs: Performance of large language models on eight benchmark tasks, showing a sudden jump in capability once the model surpasses a certain parameter scale threshold. \cite{emergent}.} \label{fig:emergent}
+    \vskip -0.09in
+\end{figure}
+
+
+
+These developments illustrate the versatility and widening potential of these models. However, one of the most intriguing aspects of LLMs that distinguishes them from earlier generations of language models is the emergence of capabilities that are not anticipated or directly predicted by extrapolating scaling laws (\cite{emergent}; \cite{imitation}). These \textit{emergent abilities} appear suddenly once the model surpasses a certain scale threshold, before which performance remains near random (Figure \ref{fig:emergent}). Some of the most representative behaviors that are not present in smaller models but can be elicited through \textit{prompting} in the scope of current large-scale LLMs include in-context learning (\cite{incontextlearning}; \cite{incon}), instruction following (\cite{instructionfollowing}; \cite{alignment}), code generation (\cite{code_gen1}; \cite{code_gen2}), compositional generalization \cite{comp}, puzzle solving \cite{puzzle}, and advanced reasoning (which is discussed in more detail in Section \ref{sec:reasoning}).
+
+
+\subsection{The Transformer Architecture in Detail}
+\label{sec:transformer-detail}
+
+The Transformer architecture~\cite{vaswani2017attention} has become the dominant backbone for virtually all modern language models. Unlike recurrent architectures that process tokens sequentially, the Transformer processes the entire input sequence in parallel through its signature \textit{self-attention} mechanism.
+
+\subsubsection{Self-Attention Mechanism}
+
+The self-attention operation allows each token in a sequence to attend to every other token, computing a weighted sum of value representations based on query-key compatibility. Formally, given input representations $X \in \mathbb{R}^{n \times d}$, self-attention computes:
+\begin{equation}
+    \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\right) V
+\end{equation}
+where $Q = XW^Q$, $K = XW^K$, $V = XW^V$ are linear projections of the input, and $d_k$ is the key dimension used for scaling. The scaling factor $\sqrt{d_k}$ prevents the dot products from growing too large in magnitude, which would push the softmax function into regions with extremely small gradients~\cite{vaswani2017attention}.
+
+\subsubsection{Multi-Head Attention}
+
+Rather than computing a single attention function, the Transformer employs \textit{multi-head attention}, which runs $h$ parallel attention heads with different learned projections:
+\begin{equation}
+    \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h) W^O
+\end{equation}
+where $\text{head}_i = \text{Attention}(QW^Q_i, KW^K_i, VW^V_i)$. This allows the model to jointly attend to information from different representation subspaces at different positions, capturing diverse linguistic relationships---syntactic dependencies, semantic associations, and coreference patterns---simultaneously~\cite{vaswani2017attention}.
+
+\subsubsection{Positional Encoding}
+
+Since the Transformer lacks the inherent sequential bias of recurrent architectures, it requires explicit positional information to distinguish token order. The original Transformer uses sinusoidal positional encodings:
+\begin{align}
+    PE_{(pos, 2i)}   & = \sin(pos / 10000^{2i/d}) \\
+    PE_{(pos, 2i+1)} & = \cos(pos / 10000^{2i/d})
+\end{align}
+where $pos$ is the token position and $i$ is the dimension index. More recent architectures have adopted learned positional embeddings or relative positional encodings such as Rotary Position Embeddings (RoPE), which enable better generalization to longer sequences than those seen during training.
+
+\subsubsection{Feed-Forward Networks}
+
+Each Transformer layer contains a position-wise feed-forward network (FFN) applied independently to each position. The standard FFN consists of two linear transformations with a non-linear activation:
+\begin{equation}
+    \text{FFN}(x) = W_2 \cdot \text{GeLU}(W_1 x + b_1) + b_2
+\end{equation}
+where $W_1 \in \mathbb{R}^{d \times d_{ff}}$ and $W_2 \in \mathbb{R}^{d_{ff} \times d}$. The intermediate dimension $d_{ff}$ is typically $4d$. Modern architectures use the GeLU activation~\cite{vaswani2017attention} or SwiGLU gating, which introduces a gated linear unit that improves training stability and downstream performance.
+
+\subsubsection{Layer Normalization and Residual Connections}
+
+Each sub-layer (attention and FFN) is wrapped with a residual connection~\cite{vaswani2017attention} and layer normalization~\cite{ba2016layernorm}:
+\begin{equation}
+    \text{output} = \text{LayerNorm}(x + \text{SubLayer}(x))
+\end{equation}
+The original Transformer applies \textit{post-norm} (normalization after the residual addition), but most modern LLMs use \textit{pre-norm} (normalization before the sub-layer), which improves gradient flow and training stability at scale. RMSNorm is a simplified variant used by LLaMA and Mistral that normalizes by the root mean square of activations, reducing computational overhead.
+
+\subsubsection{Grouped-Query and Multi-Query Attention}
+
+Standard multi-head attention requires maintaining separate key-value (KV) heads for each query head, creating a memory bottleneck during inference. Two efficiency optimizations address this:
+\begin{itemize}
+    \item \textbf{Multi-Query Attention (MQA)}~\cite{shazeer2019mqa}: All query heads share a single set of key-value heads, reducing the KV-cache memory footprint by a factor of $h$ (the number of heads).
+    \item \textbf{Grouped-Query Attention (GQA)}~\cite{ainslie2023gqa}: A middle ground where query heads are organized into groups, each sharing a KV head. With $g$ groups, GQA reduces KV-cache by $h/g$ while preserving most of the representational capacity. LLaMA-3 and Mistral use GQA.
+\end{itemize}
+
+\subsubsection{FlashAttention}
+
+Standard attention implementations are memory-bound due to materializing the full $n \times n$ attention matrix. FlashAttention~\cite{dao2022flashattention} reformulates the attention computation as a tiled, fused kernel that avoids materializing the attention matrix in high-bandwidth memory (HBM). By exploiting the GPU memory hierarchy (SRAM vs.\ HBM), FlashAttention achieves 2--4$\times$ wall-clock speedup and enables training with longer sequences without increasing memory usage. FlashAttention-2 further improves parallelism across sequence length and attention heads.
+
+\subsubsection{Mixture-of-Experts (MoE)}
+
+Mixture-of-Experts architectures~\cite{shazeer2017moe} replace the dense FFN with a set of $N$ expert networks and a lightweight gating function that routes each token to the top-$k$ experts:
+\begin{equation}
+    \text{MoE}(x) = \sum_{i=1}^{N} g_i(x) \cdot E_i(x), \quad g(x) = \text{TopK}(\text{softmax}(W_g x))
+\end{equation}
+Switch Transformers~\cite{fedus2022switch} simplified this to $k=1$ (single expert per token), achieving trillion-parameter scale with manageable compute. DeepSeek-V3~\cite{deepseekv3} uses a fine-grained MoE with 256 experts, activating 8 per token, achieving 671B total parameters but only 37B activated per forward pass. Load balancing across experts is critical; DeepSeek-V3 introduces an auxiliary-loss-free strategy that avoids the representation collapse problem of traditional load-balancing losses.
+
+\subsubsection{Encoder-Decoder and Decoder-Only Variants}
+
+The original Transformer follows an \textit{encoder-decoder} architecture, where the encoder produces contextualized representations of the input and the decoder generates output tokens autoregressively while attending to the encoder's output through cross-attention. Modern LLMs have diverged into three architectural families:
+
+\begin{itemize}
+    \item \textbf{Encoder-only models} (e.g., BERT~\cite{devlin2019bert}, RoBERTa~\cite{liu2019roberta}): Process input bidirectionally using masked language modeling. Optimal for classification, span extraction, and embedding tasks.
+    \item \textbf{Decoder-only models} (e.g., GPT~\cite{radford2019language}, LLaMA~\cite{touvron2023llama}): Generate text autoregressively using causal (left-to-right) attention. The dominant architecture for generative LLMs.
+    \item \textbf{Encoder-decoder models} (e.g., T5, BART): Combine both components for sequence-to-sequence tasks such as translation, summarization, and structured generation.
+\end{itemize}
+
+The choice of architecture has significant implications for the types of tasks a model can perform efficiently, and understanding these trade-offs is essential for designing effective NLP systems.
+
+
+\subsection{BERT and Encoder-Based Models}
+\label{sec:bert}
+
+BERT (Bidirectional Encoder Representations from Transformers)~\cite{devlin2019bert} introduced a paradigm shift in NLP by demonstrating that \textit{bidirectional} pretraining of Transformer encoders could produce rich contextual representations that dramatically improve downstream task performance. Unlike autoregressive models that read text in one direction, BERT processes text by considering context from both the left and right simultaneously.
+
+\subsubsection{Pretraining Objectives}
+
+BERT employs two pretraining objectives:
+\begin{enumerate}
+    \item \textbf{Masked Language Modeling (MLM):} A random subset (typically 15\%) of input tokens are replaced with a special \texttt{[MASK]} token, and the model learns to predict the original tokens based on surrounding context. This forces the model to develop deep bidirectional understanding.
+    \item \textbf{Next Sentence Prediction (NSP):} The model is trained to determine whether two sentences appear consecutively in the original text, encouraging cross-sentence coherence modeling.
+\end{enumerate}
+
+\subsubsection{Variants and Improvements}
+
+Several important BERT variants have been developed:
+\begin{itemize}
+    \item \textbf{RoBERTa}~\cite{liu2019roberta}: Removed NSP, used dynamic masking, larger batch sizes, and more training data, achieving substantial improvements.
+    \item \textbf{DistilBERT}: A lightweight distilled version retaining 97\% of BERT's performance with 40\% fewer parameters, suitable for deployment scenarios with computational constraints.
+    \item \textbf{ModernBERT} (2024): A significant modernization incorporating Rotary Position Embeddings (RoPE), alternating attention patterns, and training on 2 trillion tokens, achieving 2--4$\times$ faster inference and an extended context length of 8,192 tokens.
+\end{itemize}
+
+\subsubsection{Encoder Models for Embedding and Retrieval}
+
+Encoder-based models play a critical role in modern retrieval systems. Models such as \texttt{all-MiniLM-L6-v2} and \texttt{BAAI/bge-reranker-v2-m3} produce dense vector representations (embeddings) of text that capture semantic meaning. These embeddings enable efficient similarity search in vector databases through nearest-neighbor retrieval, forming the backbone of Retrieval-Augmented Generation (RAG) systems (Section~\ref{sec:rag-background}). The distinction between \textit{bi-encoder} models (which embed queries and documents independently for fast retrieval) and \textit{cross-encoder} models (which process query-document pairs jointly for accurate reranking) is particularly relevant to our system design.
+
+
+\subsection{Open-Source and Frontier Large Language Models}
+\label{sec:opensource-llms}
+
+The landscape of large language models encompasses both proprietary \textit{frontier} models and open-source alternatives, each with distinct advantages for research and deployment.
+
+\subsubsection{Proprietary Frontier Models}
+
+Frontier models represent the state of the art in language understanding and generation:
+\begin{itemize}
+    \item \textbf{GPT Series (OpenAI):} The GPT family~\cite{radford2019language, brown2020language} pioneered the decoder-only autoregressive paradigm. GPT-3~\cite{brown2020language} demonstrated that few-shot learning emerges at scale (175B parameters). Subsequent iterations (GPT-4, GPT-4o, GPT-5.2) have progressively improved reasoning, instruction following, and structured output capabilities. Our system uses GPT-5.2 for its native structured output support.
+    \item \textbf{Claude Series (Anthropic):} Anthropic's Claude models~\cite{anthropic2025claude} emphasize safety and alignment through Constitutional AI. Our initial system development used Claude Sonnet 4.5 via AWS Bedrock for its strong performance on complex reasoning tasks, and Claude Haiku 4 for rapid prototyping and cost-effective evaluation runs. The model-agnostic design of our system enabled seamless migration from Claude to GPT-5.2.
+    \item \textbf{Gemini (Google DeepMind):} The Gemini family~\cite{geminiteam2024} introduced natively multimodal architectures capable of processing text, images, audio, and video within a single model. Gemini 1.5 Pro supports context windows exceeding one million tokens through a Mixture-of-Experts architecture, enabling processing of entire codebases or lengthy documents in a single pass.
+    \item \textbf{Grok (xAI):} xAI's Grok models~\cite{xai2024grok} are designed for real-time knowledge integration. Grok-1 was released as a 314B-parameter open-weight MoE model, making it one of the largest openly available models at the time. Subsequent versions (Grok-2, Grok-3) have focused on multi-step reasoning.
+\end{itemize}
+
+\subsubsection{Open-Source Models}
+
+The open-source LLM ecosystem has grown rapidly, narrowing the gap with proprietary models:
+\begin{itemize}
+    \item \textbf{LLaMA}~\cite{touvron2023llama}: Meta's family of open-weight models demonstrated that smaller models trained on more data can match the performance of much larger ones, validating the compute-optimal scaling laws of Hoffmann et al.~\cite{hoffmann2022trainingcomputeoptimallargelanguage}.
+    \item \textbf{Mistral}~\cite{jiang2023mistral}: Introduced efficient architectures with grouped-query attention and sliding window attention, achieving strong performance at 7B parameters.
+    \item \textbf{DeepSeek:} DeepSeek-V3~\cite{deepseekv3} is a 671B-parameter MoE model that activates only 37B parameters per token, using Multi-head Latent Attention (MLA) and multi-token prediction objectives. Trained on 14.8T tokens for approximately \$5.5M, it demonstrated that frontier-level performance is achievable at dramatically lower training costs. DeepSeek-R1~\cite{deepseekr1} demonstrated that reasoning capabilities can emerge through pure reinforcement learning (RL) without supervised fine-tuning, using Group Relative Policy Optimization (GRPO).
+    \item \textbf{Qwen:} Alibaba's Qwen2.5~\cite{qwen2024} family spans models from 0.5B to 72B parameters with strong multilingual capabilities across 29+ languages. Qwen3~\cite{qwen3} further advances the family with improved reasoning, expanded knowledge, and enhanced tool-use capabilities.
+    \item \textbf{Phi (Microsoft):} The Phi series~\cite{phi3} demonstrates that small language models (3.8B--14B parameters) can achieve performance competitive with much larger models through high-quality data curation and novel training recipes, making them suitable for on-device deployment.
+    \item \textbf{Open embedding models:} Models like \texttt{all-MiniLM-L6-v2} and the BGE family provide high-quality text embeddings essential for RAG systems, offering competitive performance with proprietary embedding APIs.
+\end{itemize}
+
+The availability of open-source models is particularly important for reproducibility in research and for deployment in privacy-sensitive environments. Our system's use of Pydantic-AI as an LLM abstraction layer (Section~\ref{sec:pydanticai-detail}) ensures compatibility with both proprietary and open-source backends.
+
+\subsubsection{Non-Determinism in LLM Inference}
+
+A practical challenge when building reproducible NLP pipelines is that LLM outputs can exhibit non-deterministic behavior even when the temperature is set to zero~\cite{nondeterminism2024}. This non-determinism arises from several sources:
+\begin{itemize}
+    \item \textbf{Floating-point non-associativity:} GPU parallel reductions (e.g., in attention softmax or layer normalization) accumulate floating-point values in non-deterministic order, producing slightly different results across runs.
+    \item \textbf{Batching effects:} When API providers batch requests for throughput, the internal state of KV-caches and attention computations can vary.
+    \item \textbf{Sampling tie-breaking:} Even at temperature $\tau = 0$ (greedy decoding), numerical precision differences can alter the argmax when top logits are nearly equal.
+\end{itemize}
+For our agentic pipeline, this non-determinism compounds across multiple LLM calls (Generator, Critic, Refiner, Council members), making exact reproducibility infeasible. We mitigate this through statistical evaluation over multiple runs and by designing deterministic post-processing components (e.g., the Deterministic Verifier) that anchor stochastic LLM outputs to verifiable character offsets.
+
+
+\subsection{Structured Output Generation}
+\label{sec:structured-output}
+
+A critical challenge in applying LLMs to information extraction and classification tasks is ensuring that model outputs conform to predefined schemas. Traditional text generation produces free-form natural language that requires fragile post-processing to extract structured information.
+
+\subsubsection{The Structured Output Problem}
+
+When LLMs are used for tasks like span extraction or multi-label classification, their outputs must be machine-parseable. Common failure modes include:
+\begin{itemize}
+    \item \textbf{JSON parsing errors:} Malformed brackets, missing quotes, or trailing commas that prevent programmatic parsing.
+    \item \textbf{Schema violations:} Missing required fields, incorrect data types, or values outside permitted enumerations.
+    \item \textbf{Hallucinated structure:} Generation of plausible-looking but semantically incorrect output formats.
+\end{itemize}
+
+These failures are particularly problematic in pipeline architectures where downstream agents depend on the structured output of upstream agents.
+
+\subsubsection{Constrained Decoding Approaches}
+
+Modern LLM APIs and frameworks address this through several mechanisms:
+\begin{itemize}
+    \item \textbf{Grammar-constrained generation:} Restricting the token sampling process to only produce outputs that conform to a formal grammar (e.g., JSON schema), eliminating parsing failures at the generation level.
+    \item \textbf{Function calling / tool use:} APIs that allow developers to specify typed function signatures that the model must populate, effectively constraining output to match parameter schemas.
+    \item \textbf{Pydantic-AI schema enforcement:} The Pydantic-AI framework~\cite{pydanticai2024} provides model-agnostic structured outputs by defining Python data classes with type annotations that are automatically translated into LLM-compatible schemas. This approach enforces type safety, validates enumerated values, and ensures complete field coverage.
+\end{itemize}
+
+The transition from free-form text parsing to schema-constrained generation represents a fundamental reliability improvement for agentic LLM applications, as it eliminates an entire class of runtime failures and enables programmatic validation of LLM outputs.
+
+
+\subsection{Training Pipeline: From Pre-training to Alignment}
+\label{sec:training-pipeline}
+
+Modern LLMs undergo a multi-stage training pipeline that progressively shapes model behavior from raw language modeling to instruction-following capabilities.
+
+\subsubsection{Pre-training}
+
+The foundational stage involves training on massive corpora (typically 1--15 trillion tokens) using a next-token prediction objective. Pre-training produces a model with broad language understanding but without the ability to follow specific instructions or align with human preferences. The choice of training data composition, data deduplication, and quality filtering has emerged as one of the most important factors determining model capabilities \cite{penedo2024finewebdatasetsdecantingweb}.
+
+\subsubsection{Supervised Fine-Tuning (SFT)}
+
+Also known as \textit{instruction tuning}, SFT trains the pre-trained model on curated datasets of (instruction, response) pairs \cite{wei2022finetuned}. The model learns to interpret diverse instruction formats and generate helpful, relevant responses. Recent work has shown that training on fewer, higher-quality examples (as few as 1,000) can match or exceed training on larger, noisier datasets \cite{zhou2023lima}, highlighting the importance of data quality over quantity.
+
+\subsubsection{Reinforcement Learning from Human Feedback (RLHF)}
+
+RLHF \cite{ouyang2022training} further aligns model behavior with human preferences through a two-step process:
+\begin{enumerate}
+    \item \textbf{Reward model training:} A separate model learns to predict human preferences between pairs of responses. Annotators rank multiple model outputs for the same prompt, and the reward model is trained on these comparisons using a Bradley--Terry preference model.
+    \item \textbf{Policy optimization:} The LLM is fine-tuned using Proximal Policy Optimization (PPO) to maximize the learned reward while maintaining proximity to the SFT policy through a KL-divergence penalty:
+          \begin{equation}
+              \mathcal{L}_{\text{RLHF}} = \mathbb{E}\left[R_\phi(x, y) - \beta \cdot D_{\text{KL}}\left(\pi_\theta(y|x) \| \pi_{\text{SFT}}(y|x)\right)\right]
+          \end{equation}
+          where $R_\phi$ is the reward model, $\pi_\theta$ is the current policy, and $\beta$ controls the strength of the KL constraint.
+\end{enumerate}
+
+\subsubsection{Direct Preference Optimization (DPO)}
+
+DPO \cite{rafailov2023direct} offers a simpler alternative to RLHF by directly optimizing the policy on preference data without training a separate reward model. DPO reformulates the RLHF objective as a classification loss on preference pairs:
+\begin{equation}
+    \mathcal{L}_{\text{DPO}} = -\mathbb{E}\left[\log \sigma\left(\beta \log \frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)}\right)\right]
+\end{equation}
+where $y_w$ and $y_l$ are the preferred and dispreferred responses, respectively. DPO has become the dominant alignment technique due to its stability and simplicity, and is used by many state-of-the-art models including LLaMA-3 and Mistral.
+
+\subsubsection{Parameter-Efficient Fine-Tuning}
+\label{sec:peft}
+
+Full fine-tuning of large models (updating all parameters) requires substantial computational resources. Parameter-efficient fine-tuning (PEFT) methods reduce the number of trainable parameters while maintaining performance. Table~\ref{tab:peft-comparison} provides a comparative overview.
+
+\paragraph*{Adapter Layers.} Houlsby et al.~\cite{houlsby2019adapters} introduced bottleneck adapter modules inserted between Transformer sub-layers. Each adapter consists of a down-projection, nonlinearity, and up-projection ($W_{\text{down}} \in \mathbb{R}^{d \times r}$, $W_{\text{up}} \in \mathbb{R}^{r \times d}$), adding only $2rd + r$ parameters per layer. Adapters achieve performance comparable to full fine-tuning on GLUE benchmarks while training less than 3.6\% of total parameters.
+
+\paragraph*{Prefix Tuning.} Li and Liang~\cite{li2021prefix} prepend learnable continuous vectors (``soft prefixes'') to the key and value matrices of each attention layer. The prefix vectors $P_k, P_v \in \mathbb{R}^{l \times d}$ (where $l$ is the prefix length) are optimized while all model parameters remain frozen. Prefix tuning is particularly effective for generation tasks, as it conditions the model's attention pattern without modifying its weights.
+
+\paragraph*{Prompt Tuning.} Lester et al.~\cite{lester2021prompt} simplify prefix tuning by prepending learnable ``soft prompt'' tokens only to the input embedding layer (not to each attention layer). Despite its simplicity, prompt tuning becomes competitive with full fine-tuning as model scale increases, requiring as few as 20--100 tunable tokens.
+
+\paragraph*{LoRA (Low-Rank Adaptation).} Hu et al.~\cite{hu2022lora} decompose weight updates into low-rank matrices ($W' = W + BA$ where $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times d}$, $r \ll d$), reducing trainable parameters by 100--1000$\times$. LoRA adapters can be merged into the base weights at inference time, introducing zero additional latency. This has made LoRA the most widely adopted PEFT method.
+
+\paragraph*{QLoRA.} Dettmers et al.~\cite{dettmers2023qlora} combine LoRA with 4-bit quantization of the base model using a novel NormalFloat (NF4) data type, enabling fine-tuning of 65B-parameter models on a single 48~GB GPU. QLoRA also introduces double quantization (quantizing the quantization constants) and paged optimizers to manage memory spikes.
+
+\paragraph*{IA\textsuperscript{3} (Infused Adapter by Inhibiting and Amplifying Inner Activations).} Liu et al.~\cite{liu2022ia3} introduce learned rescaling vectors $l_k, l_v, l_{ff}$ that element-wise multiply the keys, values, and FFN activations. With only three vectors per layer, IA\textsuperscript{3} adds a negligible number of parameters (0.01\% of model size) while achieving strong few-shot performance.
+
+\paragraph*{DoRA (Weight-Decomposed Low-Rank Adaptation).} Liu et al.~\cite{liu2024dora} decompose pre-trained weights into magnitude and direction components ($W = m \cdot \frac{V}{\|V\|}$), then apply LoRA only to the directional component. This decomposition aligns the fine-tuning update pattern with that of full fine-tuning, consistently improving over standard LoRA across vision and language tasks.
+
+\begin{table}[t]
+    \centering
+    \small
+    \caption{Comparison of parameter-efficient fine-tuning methods.}
+    \label{tab:peft-comparison}
+    \begin{tabular}{lccc}
+        \toprule
+        \textbf{Method}                         & \textbf{\% Params} & \textbf{Inference Overhead} & \textbf{Merging} \\
+        \midrule
+        Adapters~\cite{houlsby2019adapters}     & $\sim$3.6\%        & Sequential layers           & No               \\
+        Prefix Tuning~\cite{li2021prefix}       & $<$0.1\%           & Longer context              & No               \\
+        Prompt Tuning~\cite{lester2021prompt}   & $<$0.01\%          & Longer context              & No               \\
+        LoRA~\cite{hu2022lora}                  & $\sim$0.1\%        & None (merged)               & Yes              \\
+        QLoRA~\cite{dettmers2023qlora}          & $\sim$0.1\%        & Quantization                & Partial          \\
+        IA\textsuperscript{3}~\cite{liu2022ia3} & $\sim$0.01\%       & Rescaling                   & Yes              \\
+        DoRA~\cite{liu2024dora}                 & $\sim$0.1\%        & None (merged)               & Yes              \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+These methods are particularly relevant to our work because hardware constraints (Section~\ref{ch:conclusion}) prevented us from fine-tuning LLMs, motivating instead the exclusive use of prompt engineering and agentic workflow design.
+
+\subsubsection{Reinforcement Learning for LLM Alignment}
+\label{sec:rl-alignment}
+
+Beyond the RLHF and DPO methods discussed in Section~\ref{sec:training-pipeline}, recent work has introduced more efficient RL algorithms for LLM training:
+
+\paragraph*{Group Relative Policy Optimization (GRPO).} GRPO~\cite{shao2024deepseekmath} eliminates the need for a separate critic (value function) model, which in standard PPO must be as large as the policy model. Instead, GRPO estimates advantages by sampling a group of $G$ completions $\{y_1, \ldots, y_G\}$ for each prompt $x$ and computing group-relative advantages:
+\begin{equation}
+    \hat{A}_i = \frac{r_i - \text{mean}(\{r_1, \ldots, r_G\})}{\text{std}(\{r_1, \ldots, r_G\})}
+\end{equation}
+where $r_i$ is the reward for completion $y_i$. This removes the memory and compute overhead of training a critic model while providing a stable baseline for variance reduction. GRPO was used to train DeepSeekMath, achieving state-of-the-art mathematical reasoning.
+
+\paragraph*{Pure RL Reasoning (DeepSeek-R1-Zero).} DeepSeek-R1-Zero~\cite{deepseekr1} demonstrated that chain-of-thought reasoning can emerge purely from RL training without any supervised fine-tuning on reasoning traces. Starting from a base model, GRPO with rule-based rewards (correctness verification for math/coding tasks) produced emergent behaviors including self-verification, reflection, and extended thinking---capabilities that were previously assumed to require explicit reasoning demonstrations. DeepSeek-R1 builds on this by adding a cold-start SFT phase and multi-stage training to improve readability and alignment while preserving the emergent reasoning capabilities.
+
+
+\subsection{Context Window Scaling}
+\label{sec:context-scaling}
+
+The context window---the maximum number of tokens a model can process in a single forward pass---directly constrains the amount of information available during inference. Many conspiracy-related Reddit documents, combined with few-shot examples and system instructions, can exceed 8,000 tokens, making context length a practical concern.
+
+\subsubsection{Position Encoding Extensions}
+
+Several techniques enable extending context windows beyond training-time lengths:
+\begin{itemize}
+    \item \textbf{RoPE interpolation:} Position Interpolation \cite{chen2023extending} and YaRN \cite{peng2023yarn} modify RoPE frequencies to support longer sequences without full retraining.
+    \item \textbf{ALiBi (Attention with Linear Biases)} \cite{press2022alibi}: Replaces positional embeddings with a linear bias term added to attention scores, providing natural length extrapolation.
+    \item \textbf{Sliding window attention} \cite{jiang2023mistral}: Restricts attention to a fixed-size local window, achieving computational efficiency while maintaining long-sequence processing through information propagation across layers.
+\end{itemize}
+
+For our system, context window limitations affect prompt design: few-shot examples must be carefully selected to maximize information density, the RAG pipeline must balance retrieval quantity against context budget, and long Reddit documents may require truncation strategies that preserve narrative structure.
+
+
+\subsection{Inference Optimization}
+\label{sec:inference-opt}
+
+The computational cost of LLM inference is a critical consideration for production deployment and for research workflows involving thousands of evaluation runs.
+
+\subsubsection{KV-Cache and Attention Efficiency}
+
+During autoregressive generation, the key and value tensors for previously generated tokens can be cached and reused, avoiding redundant computation. Techniques such as grouped-query attention (GQA) and multi-query attention (MQA) reduce the memory footprint of the KV-cache by sharing key-value heads across query heads.
+
+\subsubsection{Speculative Decoding}
+
+Speculative decoding \cite{leviathan2023fast} accelerates inference by using a small \textit{draft model} to propose candidate token sequences, which are then verified in parallel by the larger \textit{target model}. This technique can achieve 2--3$\times$ speedups without any change to the output distribution, making it particularly valuable for multi-call pipelines.
+
+\subsubsection{Quantization}
+
+Model quantization reduces the precision of weights and activations from 16-bit floating point to lower bit-widths (8-bit, 4-bit, or even 2-bit), dramatically reducing memory requirements and improving throughput:
+\begin{itemize}
+    \item \textbf{GPTQ} \cite{frantar2023gptq}: Post-training quantization using approximate second-order information, achieving minimal quality degradation at 4-bit precision.
+    \item \textbf{AWQ (Activation-Aware Weight Quantization):} Protects salient weights based on activation magnitude, providing better quality--efficiency trade-offs than uniform quantization.
+\end{itemize}
+
+While our system relies on API-based inference where these optimizations are handled by the provider, understanding inference efficiency is important for evaluating deployment feasibility and for the future work direction of migrating to self-hosted models.
+
+
+

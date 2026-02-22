@@ -1,0 +1,16 @@
+\chapter{System Design and Methodology}
+\label{ch:methodology}
+
+% \minitoc
+
+This chapter presents the design and implementation of our agentic LLM system for SemEval-2026 Task 10. We implement a two-stage agentic workflow: \textbf{Subtask 1 (S1)} extracts psycholinguistic marker spans, and \textbf{Subtask 2 (S2)} predicts conspiracy endorsement conditioned on the document and the extracted markers. The design separates (i) LLM-mediated semantic decisions (what to extract / how to interpret stance) from (ii) deterministic operations that require exactness (character offsets, lightweight text statistics).
+
+The chapter is organized as follows. We first describe the task and dataset (Section~\ref{sec:dataset}), then present the system architecture for both subtasks (Sections~\ref{sec:s1-system}--\ref{sec:s2-system}), the psycholinguistic grounding and marker ontology (Section~\ref{sec:psycholinguistic-method}), the prompt design and optimization methodology (Section~\ref{sec:prompts-methodology}), the models and tools used (Section~\ref{sec:models}), the experimental setup (Section~\ref{sec:exp-setup}), and finally the development trajectory documenting the system's evolution across six phases (Section~\ref{sec:development-trajectory}).
+
+\input{chapters/experiments/dataset}
+\input{chapters/experiments/system_overview}
+\input{chapters/experiments/psycholinguistic_grounding}
+\input{chapters/experiments/prompting}
+\input{chapters/experiments/models}
+\input{chapters/experiments/experimental_setup}
+\input{chapters/experiments/development_trajectory}

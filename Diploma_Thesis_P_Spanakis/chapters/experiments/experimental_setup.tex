@@ -1,0 +1,48 @@
+\section{Experimental Setup}
+\label{sec:exp-setup}
+
+\subsection{Training--Evaluation Split}
+
+The SemEval-2026 Task 10 organizers released a training set containing 3,682 rehydrated Reddit documents. After preprocessing (Section~\ref{sec:dataset}), we retain 3,271 unique documents. We reserve 10\% of the training set as a held-out development split, stratified by label and subreddit, for GEPA prompt optimization and ablation studies.
+
+\subsection{Inference Configuration}
+
+All inference is performed with \textbf{GPT-5.2} through the OpenAI API. No model fine-tuning is performed; all improvements derive from prompt engineering and agentic workflow design. The system processes documents sequentially, with parallel execution only within the S2 council (four jurors run concurrently).
+
+\subsection{Baselines}
+
+We compare against two baselines:
+\begin{enumerate}
+    \item \textbf{Zero-shot GPT-5.2:} A single-pass prompt with no retrieval, no self-refinement, and no council deliberation. This isolates the contribution of the agentic workflow.
+    \item \textbf{Retrieval-only:} Zero-shot + contrastive few-shot retrieval, without the self-refine loop (S1) or council architecture (S2). This isolates the contribution of retrieval from agent orchestration.
+\end{enumerate}
+
+\subsection{Evaluation Protocol}
+
+For the final submission, models are evaluated on a hidden test set provided by the task organizers. The official metrics are:
+\begin{itemize}
+    \item \textbf{S1:} Macro F1 over the five marker types.
+    \item \textbf{S2:} Macro F1 over the binary labels.
+\end{itemize}
+
+Development evaluations also report accuracy, class-level precision and recall, and false-positive analysis (Reporter Trap rate).
+
+\subsection{Pipeline Components}
+\label{sec:pipeline-components}
+
+All final experiments use OpenAI \textbf{GPT-5.2} accessed via Pydantic-AI \cite{pydanticai2024} for schema-constrained generation. Stateful agent workflows are implemented as directed acyclic graphs using \textbf{LangGraph} \cite{langgraph2024}, where each node maintains typed state with explicit field annotations enabling deterministic transitions. The few-shot retrieval component uses \textbf{ChromaDB} \cite{chromadb2023} with OpenAI text-embedding-3-small embeddings (1536 dimensions) and \textbf{Maximal Marginal Relevance (MMR)} reranking \cite{carbonell1998mmr} using the \textbf{BAAI/bge-reranker-v2-m3} cross-encoder. MMR balances relevance against diversity via:
+
+\begin{equation}
+    \text{MMR} = \arg\max_{d_i \in R \setminus S}\big[\lambda \cdot \text{Rel}(d_i, q) - (1-\lambda) \cdot \max_{d_j \in S}\text{Sim}(d_i, d_j)\big]
+\end{equation}
+
+where $R$ is the candidate set, $S$ the already-selected documents, and $\lambda=0.7$ biases toward relevance while preventing near-duplicate few-shots. Relevance scores from the cross-encoder are min-max normalized per batch to the $[0,1]$ range. S1 retrieval over-retrieves $3\times$ candidates before reranking, while S2 uses $4\times$ to ensure higher-quality hard negatives. All LLM calls execute asynchronously with exponential backoff retry logic (base 2s, max 5 retries).
+
+We employ differential temperature settings:
+\begin{itemize}
+    \item $\tau=0.7$ for the DD-CoT Generator to encourage diverse candidate exploration.
+    \item $\tau=0.4$ for Council Jurors to balance creative reasoning with verdict consistency.
+    \item $\tau=0.0$ for the Critic, Refiner, and Judge to enforce deterministic, reproducible auditing.
+\end{itemize}
+
+This stratification reflects each agent's functional role: generative nodes benefit from sampling diversity to avoid mode collapse over marker types, while evaluative nodes require strict adherence to textual evidence. For prompt optimization, we utilize \textbf{GEPA} \cite{agrawal2025gepa} integrated with MLflow \cite{mlflow2024}, using a passthrough injection pattern to tunnel gold labels through the prediction wrapper for custom scoring. We conduct optimization runs targeting S1 and S2 system prompts with population sizes of 20--30 candidates and 40--80 trials per run, alternating between training and development splits to ensure generalization.

@@ -1,0 +1,71 @@
+\section{Evaluation Metrics}
+\label{sec:eval-background}
+
+This section introduces the evaluation metrics used throughout this thesis for both span extraction (Subtask 1) and text classification (Subtask 2).
+
+\subsection{Precision, Recall, and F1 Score}
+
+The standard information retrieval metrics form the foundation of our evaluation:
+\begin{align}
+    \text{Precision} & = \frac{\text{True Positives}}{\text{True Positives} + \text{False Positives}}          \\
+    \text{Recall}    & = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}}          \\
+    F_1              & = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}
+\end{align}
+
+For multi-class settings, \textbf{macro averaging} computes these metrics independently for each class and then takes the unweighted mean, giving equal importance to all classes regardless of their frequency. This is particularly important in our setting, where marker types (S1) and conspiracy labels (S2) exhibit significant class imbalance. In contrast, \textbf{micro averaging} aggregates true positives, false positives, and false negatives across all classes before computing metrics, effectively weighting each instance equally. We report macro-averaged results as the primary metric to ensure that rare marker categories (e.g., \textsc{Evidence}, \textsc{Victim}) receive equal weight in performance assessment.
+
+\subsection{F-beta Score}
+
+The $F_\beta$ score generalizes F1 by allowing a configurable trade-off between precision and recall:
+\begin{equation}
+    F_\beta = \frac{(1 + \beta^2) \cdot \text{Precision} \cdot \text{Recall}}{\beta^2 \cdot \text{Precision} + \text{Recall}}
+\end{equation}
+
+When $\beta > 1$, the metric weights recall more heavily than precision; when $\beta < 1$, precision dominates. We use $\beta = 2$ for S1 prompt optimization (Section~\ref{sec:gepa-details}), prioritizing recall over precision because the downstream S2 classification task is more robust to false positive marker spans than to missing true positives. Specifically, $F_2$ assigns recall four times the weight of precision, reflecting the asymmetric cost structure of our pipeline: a missed conspiracy marker degrades S2 classification quality more than a spurious marker.
+
+\subsection{Span-Level Evaluation}
+
+For Subtask 1 (Marker Extraction), evaluation operates at the span level. A predicted span is considered correct if it matches a gold span in both \textbf{text content} (exact or near-exact string match) and \textbf{label} (marker type). The official SemEval evaluation uses overlap-based matching, where partial credit is awarded based on character-level intersection.
+
+\textbf{Intersection over Union (IoU)} quantifies the overlap between two spans:
+\begin{equation}
+    \text{IoU}(s_1, s_2) = \frac{|s_1 \cap s_2|}{|s_1 \cup s_2|}
+\end{equation}
+where $|s|$ denotes the character count of span $s$. IoU is used both in evaluation (to determine match quality) and in our exploratory data analysis (Section~\ref{sec:eda}) to quantify annotation ambiguity between marker types. A threshold of IoU $\geq 0.5$ is commonly used to determine whether a predicted span sufficiently overlaps with a gold span to count as a match, analogous to the localization threshold used in object detection evaluation.
+
+\subsection{Classification Metrics for S2}
+
+For Subtask 2 (Conspiracy Detection), we report \textbf{macro F1} and \textbf{accuracy}. Macro F1 is the primary metric as it accounts for class imbalance between conspiracy and non-conspiracy labels. Additional diagnostic metrics include:
+\begin{itemize}
+    \item \textbf{False Positive Rate (FPR)}: The proportion of non-conspiracy documents incorrectly classified as conspiracy, particularly important for measuring Reporter Trap susceptibility. FPR is defined as $\text{FPR} = \frac{\text{FP}}{\text{FP} + \text{TN}}$.
+    \item \textbf{Recall}: The proportion of true conspiracy documents correctly identified, critical for ensuring that genuine conspiratorial content is not missed.
+    \item \textbf{Cohen's Kappa ($\kappa$)}: A chance-corrected agreement metric that accounts for the baseline agreement expected by random chance: $\kappa = \frac{p_o - p_e}{1 - p_e}$, where $p_o$ is observed agreement and $p_e$ is expected agreement under independence. Values above 0.6 indicate substantial agreement.
+\end{itemize}
+
+\subsection{Inter-Annotator Agreement}
+
+The quality of the gold annotations directly impacts model evaluation. For tasks involving subjective judgments---such as determining whether a text constitutes conspiracy endorsement---inter-annotator agreement provides an upper bound on expected model performance. We use Krippendorff's $\alpha$ \cite{krippendorff2011computing} as the primary agreement metric because it handles multiple annotators, missing data, and different measurement scales.
+
+For span-level annotation (S1), agreement is measured using character-level IoU between annotators' spans of the same marker type. The mean pairwise IoU across annotators provides an empirical ceiling for the boundary precision achievable by any automated system. Our analysis in Section~\ref{sec:eda} reveals that annotator agreement varies substantially across marker categories, with \textsc{Actor} spans showing highest agreement and \textsc{Evidence} spans showing lowest---a pattern that directly correlates with model performance.
+
+\subsection{Statistical Significance Testing}
+
+To ensure that observed performance differences between system configurations are not artifacts of sampling variability, we employ appropriate statistical tests:
+
+\begin{itemize}
+    \item \textbf{McNemar's test} \cite{mcnemar1947note}: A paired non-parametric test applied to classification tasks, comparing whether two classifiers disagree on the same instances with equal frequency. This is preferred over independent-sample tests because it accounts for the paired nature of predictions on the same test set.
+    \item \textbf{Bootstrap confidence intervals} \cite{efron1993bootstrap}: For span-level metrics where analytical distributions are intractable, we construct 95\% confidence intervals via 1,000 bootstrap resamples of the test set. The non-overlap of confidence intervals provides a practical significance criterion.
+    \item \textbf{Benjamini--Hochberg correction}: When comparing multiple system configurations simultaneously, $p$-values are adjusted for multiple hypothesis testing to control the false discovery rate (FDR).
+\end{itemize}
+
+\subsection{Ablation Study Methodology}
+
+Ablation studies systematically evaluate the contribution of individual components by removing them one at a time from the full system and measuring performance degradation. For our agentic pipeline, we define the following ablation conditions:
+\begin{itemize}
+    \item \textbf{Component removal}: Disabling individual pipeline components (e.g., removing the Critic loop, disabling the Forensic Profiler, replacing the Council with a single-pass classifier) while keeping all other components intact.
+    \item \textbf{Cumulative ablation}: Progressively adding components to a minimal baseline (zero-shot prompt) to measure cumulative improvement.
+    \item \textbf{Interaction analysis}: Comparing the sum of individual ablation deltas against the total improvement to quantify synergistic or antagonistic interactions between components.
+\end{itemize}
+
+This methodology follows the recommendations of \cite{melis2018state}, who demonstrated that rigorous ablation protocols are essential for attributing performance gains to specific architectural decisions rather than confounding factors.
+

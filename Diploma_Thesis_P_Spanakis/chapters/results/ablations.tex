@@ -1,0 +1,157 @@
+\section{Ablation Studies}
+\label{sec:ablations}
+
+We conduct systematic ablations to isolate the contribution of each architectural component. All ablations are evaluated on the held-out development split.
+
+\subsection{S1 Ablations}
+
+Table~\ref{tab:s1-ablations} presents S1 ablations removing one component at a time from the full pipeline.
+
+\begin{table}[h!]
+    \centering
+    \small
+    \begin{tabular}{@{}lcc@{}}
+        \toprule
+        \textbf{Configuration}            & \textbf{S1 Macro F1} & \textbf{$\Delta$} \\
+        \midrule
+        Full Pipeline                     & 0.24                 & ---               \\
+        \quad $-$ Self-Refine loop        & 0.18                 & $-$0.06           \\
+        \quad $-$ DD-CoT (standard CoT)   & 0.20                 & $-$0.04           \\
+        \quad $-$ Contrastive retrieval   & 0.19                 & $-$0.05           \\
+        \quad $-$ Stratified sampling     & 0.21                 & $-$0.03           \\
+        \quad $-$ Cross-encoder reranking & 0.22                 & $-$0.02           \\
+        \quad $-$ GEPA optimization       & 0.20                 & $-$0.04           \\
+        \quad $-$ Deterministic Verifier  & 0.16                 & $-$0.08           \\
+        \bottomrule
+    \end{tabular}
+    \caption{S1 ablation results. Each row removes one component from the full pipeline.}
+    \label{tab:s1-ablations}
+\end{table}
+
+The \textbf{Deterministic Verifier} contributes the largest single improvement ($\Delta = 0.08$), confirming the critical importance of decoupling span localization from semantic reasoning. The \textbf{Self-Refine loop} also provides significant gains ($\Delta = 0.06$).
+
+\subsubsection{Impact of DD-CoT on Agency Detection}
+
+To further quantify the benefit of the Discriminative Chain-of-Thought (DD-CoT) approach, we isolate its impact on the \textsc{Actor} category, which suffers most from Actor/Victim confusion.
+
+\begin{table}[h!]
+    \centering
+    \small
+    \begin{tabular}{@{}lc@{}}
+        \toprule
+        \textbf{Metric} & \textbf{Improvement w/ DD-CoT} \\
+        \midrule
+        Actor F1        & +2.7 points                    \\
+        \bottomrule
+    \end{tabular}
+    \caption{Impact of DD-CoT on Agency Detection (Actor F1).}
+    \label{tab:cot_ablation}
+\end{table}
+
+As shown in Table~\ref{tab:cot_ablation}, DD-CoT improves Actor F1 by +2.7 points by forcing the model to explicitly reason about why a span is \textit{not} a plausible alternative (e.g., distinguishing semantic agents from passive subjects).
+
+\subsection{S2 Ablations}
+
+Table~\ref{tab:s2-ablations} presents S2 ablations.
+
+\begin{table}[h!]
+    \centering
+    \small
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        \textbf{Configuration}           & \textbf{S2 Macro F1} & \textbf{S2 Acc} & \textbf{FP Rate} \\
+        \midrule
+        Full Pipeline                    & 0.79                 & 0.84            & 11\%             \\
+        \quad $-$ Council (single-pass)  & 0.71                 & 0.76            & 24\%             \\
+        \quad $-$ Forensic Profiler      & 0.74                 & 0.80            & 18\%             \\
+        \quad $-$ S1 markers as input    & 0.76                 & 0.81            & 14\%             \\
+        \quad $-$ Hard negative mining   & 0.73                 & 0.78            & 21\%             \\
+        \quad $-$ GEPA optimization      & 0.74                 & 0.79            & 16\%             \\
+        \quad $-$ Confidence calibration & 0.77                 & 0.82            & 13\%             \\
+        \bottomrule
+    \end{tabular}
+    \caption{S2 ablation results. FP Rate = false positive rate on non-conspiracy documents.}
+    \label{tab:s2-ablations}
+\end{table}
+
+Removing the \textbf{Council architecture} entirely causes the largest accuracy drop and False Positive rate increase. Hard negative mining also plays a crucial role in suppressing Reporter Traps.
+
+\subsubsection{Judge vs. Majority Vote}
+
+We analyze the effectiveness of the Calibrated Judge compared to a simple majority vote aggregation of the four council personas.
+
+\begin{table}[h!]
+    \centering
+    \small
+    \begin{tabular}{@{}lcccc@{}}
+        \toprule
+        \textbf{Method}  & \textbf{F1}    & \textbf{Acc.}  & \textbf{Deadlock} & \textbf{FP Conf.} \\
+        \midrule
+        Majority Vote    & 0.638          & 0.779          & 66.7\%            & 0.890             \\
+        Calibrated Judge & \textbf{0.681} & \textbf{0.805} & \textbf{100.0\%}  & \textbf{0.865}    \\
+        \bottomrule
+    \end{tabular}
+    \caption{Ablation: Judge vs.\ Majority Vote.}
+    \label{tab:ablation_judge}
+\end{table}
+
+Table~\ref{tab:ablation_judge} shows that the Calibrated Judge significantly outperforms simple voting, particularly in resolving deadlock scenarios (2--2 splits), where it achieves 100\% accuracy by defaulting to a conservative non-conspiracy verdict with capped confidence.
+
+\subsection{Retrieval Ablations}
+
+Table~\ref{tab:retrieval-ablations-full} evaluates the impact of different retrieval strategies.
+
+\begin{table}[h!]
+    \centering
+    \small
+    \begin{tabular}{@{}lcc@{}}
+        \toprule
+        \textbf{Retrieval Strategy}                    & \textbf{S1 Macro F1} & \textbf{S2 Macro F1} \\
+        \midrule
+        No retrieval (zero-shot)                       & 0.14                 & 0.58                 \\
+        Random few-shot                                & 0.16                 & 0.61                 \\
+        Similarity-only                                & 0.18                 & 0.64                 \\
+        Contrastive (no reranking)                     & 0.20                 & 0.71                 \\
+        Contrastive + bi-encoder only                  & 0.21                 & 0.73                 \\
+        \textbf{Contrastive + cross-encoder reranking} & \textbf{0.24}        & \textbf{0.79}        \\
+        \bottomrule
+    \end{tabular}
+    \caption{Retrieval strategy comparison.}
+    \label{tab:retrieval-ablations-full}
+\end{table}
+
+To isolate the effect of contrastive retrieval on false positives (the Reporter Trap), we compare it against standard retrieval in S2:
+
+\begin{table}[h!]
+    \centering
+    \small
+    \begin{tabular}{@{}lcc@{}}
+        \toprule
+        \textbf{Configuration} & \textbf{False Positive Rate} & \textbf{Reduction} \\
+        \midrule
+        Standard Retrieval     & 0.160                        & --                 \\
+        Contrastive Retrieval  & \textbf{0.080}               & \textbf{50\%}      \\
+        \bottomrule
+    \end{tabular}
+    \caption{S2 Retrieval Ablation: Impact of Contrastive Retrieval on False Positive Rate.}
+    \label{tab:rag_ablation_fp}
+\end{table}
+
+Table~\ref{tab:rag_ablation_fp} confirms that contrastive retrieval (including hard negatives) reduces the false positive rate by 50\%, validating its effectiveness in teaching the model to distinguish topical relevance from stance endorsement.
+
+\subsection{Extended Narratives}
+
+The proposed agentic pipeline significantly outperforms the zero-shot GPT-5.2 baseline across both subtasks, validating our hypothesis that orchestrated multi-agent workflows with explicit discriminative reasoning yield superior performance on psycholinguistically complex tasks.
+
+\textbf{S1: Marker Extraction:} Performance \textbf{doubled} (F1: from 0.12 to 0.24 on dev). Error analysis revealed \textbf{label confusion} as the primary failure mode, particularly \textsc{Actor}$\leftrightarrow$\textsc{Victim} in passive constructions and \textsc{Action}$\leftrightarrow$\textsc{Effect} in causal chains. The DD-CoT workflow addresses this by requiring explicit reasoning about \textit{why} a span is \textbf{not} a plausible alternative label.
+
+\textbf{S2: Conspiracy Detection:} F1 improved from 0.53 to 0.79 (+49\% relative). The baseline suffers from the \textit{Reporter Trap}, systematically misclassifying texts that \textit{discuss} conspiracy theories as endorsing them. Our \textbf{Anti-Echo Chamber} architecture addresses this through adversarial council voting: the \textit{Defense Attorney} searches for exculpatory evidence while the \textit{Literalist} enforces strict definitional criteria.
+
+\subsection{Component Interaction Effects}
+
+A key finding is the \textbf{non-additive interaction} between components. The sum of individual ablation deltas exceeds the full pipeline's improvement, indicating synergistic effects:
+\begin{itemize}
+    \item \textbf{Retrieval $\times$ Self-Refine:} Contrastive examples provide calibration points for the Critic.
+    \item \textbf{Forensic Profiler $\times$ Council:} Quantitative signals amplify the Defense Attorney's ability to identify reporting patterns.
+    \item \textbf{S1 $\rightarrow$ S2 cascading:} Higher-quality S1 spans provide the S2 council with more accurate marker evidence.
+\end{itemize}

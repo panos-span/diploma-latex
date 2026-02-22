@@ -1,0 +1,508 @@
+\section{Results on constants redefinition}
+
+In this section, we present the findings of the experiments conducted for the constant redefinition task, in which Large Language Models were challenged to override widely known predefined values of specific scientific constants and adapt their reasoning processes accordingly. 
+
+\subsection{Anchoring to default values}
+\label{sec:anchoring}
+
+As outlined in Section \ref{sec:metrics}, we specifically measured the Anchored Responses Rate, which directly captures the extent to which models tend to rely on predefined knowledge, even when they are explicitly instructed to disregard it. Table \ref{tab:anchored_table} displays these results for all tested LLMs, evaluated under the most difficult cases of the two redefinition scenarios (assignment and swapping), as well as across the three levels of question difficulty and the two response formats (Free-Form and Multiple Choice). These findings reflect performance under the Zero-Shot prompting strategy only. 
+
+\input{tables/anchoring_con}
+
+It is notable that across all different conditions, models are susceptible to anchoring to some degree. Even in the Free-Form format, where the absence of options for possible answers completely removes any external cues or biases--as well as the random choice factor--LLMs from all model families score significantly high anchoring rates. For example, Mistral Large produces a 73.33\% rate, Titan Large and Claude 3.5 Sonnet both generate 60\% anchored responses in some cases, while Llama 405B and Command r also exceed the 50\% threshold with a score of 53.33\%. In the Multiple Choice case, even higher anchoring rates are observed. More specifically, Llama 405B hits the extremely high score of 93.33\%, while several other models produce large anchoring rates, such as 73.33\% or 66.67\%. These findings suggest that anchoring behavior is a robust phenomenon, not limited to specific model architectures or sizes.
+
+\vspace{\baselineskip}
+
+
+To further investigate the underlying dynamics of the anchoring phenomenon, we calculate the correlation between the No Redefinition (NR) accuracy and the post-redefinition Anchored Responses rate. These results, averaged across all LLMs, are presented in Table \ref{tab:correlation}. In this setting, a high negative correlation indicates that models that respond correctly when asked about constants without any redefinition of their values are less likely to adhere to default knowledge when redefinitions are introduced. On the contrary, a high positive correlation means the exact opposite: that models with higher knowledgeability are more prone to fail to override the predefined values during the Redefinition Task.
+
+\vspace{\baselineskip}
+\input{tables/correlation_con}
+\vspace{\baselineskip}
+
+The correlation results expose an interesting pattern: simpler question levels are associated with negative or relatively weaker correlation scores, which, as explained before, means that when models are capable of dealing with easy or medium reasoning problems in the No Redefinition setting, they are also more likely to handle correctly the user-defined reassignments, an encouraging indication that they are interpreting the redefinition prompts appropriately. Interestingly, this relationship shifts markedly in the most difficult question level, and especially in the swapping cases, where the highest positive correlations are observed. In other words, models performing well under more challenging reasoning tasks in the original No Redefinition setting tend to ignore redefinitions and thus fail on the corresponding tasks. This leads to a surprising conclusion: LLMs that demonstrate stronger reasoning capabilities based on established world knowledge appear more vulnerable to anchoring when challenged with highly counterintuitive tasks.
+
+\vspace{\baselineskip}
+
+\subsection{Inverse trends}
+\label{sec:inverse}
+
+While testing various models across different families, we observed a particularly compelling pattern: the inability of LLMs to override default scientific values, apart from their reasoning strength, is greatly influenced by the parameter size itself. Although larger models achieve higher accuracy scores on standard reasoning tasks (such as the No Redefinition tasks), they also seem to demonstrate significantly greater anchoring behavior across the Redefinition setup, meaning that they struggle to override deeply embedded factual knowledge. Table \ref{tab:anchored_table_NR} presents the correct response rates on the pre-redefinition questions alongside the corresponding anchoring rates under the Free Form format and Zero-Shot prompting technique, for models of varying sizes within the Mistral and Llama family. These results clearly illustrate this counterintuitive trend, as, in several cases, especially in the most demanding scenarios, anchoring behavior increases with LLM scale. For instance, Llama 70B produced anchored responses for 33.33\% of the $Q_3$ questions in the hardest swapping scenario, while the much larger Llama 405B yielded a significantly higher score higher of 53.33\%. A similar pattern is even more pronounced within the Mistral/Mixtral family, where Mixtral 8x7B generated a 46.67\% anchoring rate and Mistral Large (123B) reached a percentage of 73.33\%, which is not only extremely high on its own, but also represents a 57.1\% relative increase over Mixtral 8x7B. Interestingly, this score even surpasses the corresponding response accuracy in the No Redefinition task, which means that the model produced the default answer (the one that results from the canonical value of the constant) more often across the swapping scenario--where it is incorrect--than in the case where it is actually valid.
+\vspace{\baselineskip}
+\input{tables/anchored_NR_con}
+
+This inverse phenomenon is very clearly illustrated Figures \ref{fig:model_size_vs_anchored_responses} and \ref{fig:model_size_vs_anchored_responses_mistral}, which visualize how the anchored responses rate alters as LLM size increases for models within the Llama and Mistral family, respectively. Both figures correspond to the Multiple Choice response format, focusing on the $Q_3$-level questions regarding the most difficult cases of the assignment and swapping redefinition scenarios. Each line in the plots represents a different prompting strategy used for experiments--Zero-Shot, Few-Shot, and Chain-of-Thought--distinguished by color. With only two exceptions, the resulting lines reveal an obvious upward trend, culminating in strikingly high anchoring percentages, especially for the swapping redefinition type. These visualizations provide strong empirical support for the finding that larger LLMs are more prone to exhibit elevated levels of anchoring behavior, pointing to a striking case of inverse scaling.
+
+\begin{figure}[H]
+\vskip -0.01in
+\centering 
+\includegraphics[width=0.75\linewidth]{images/model_size_vs_anchored_responses.png}
+\caption{Number of anchored responses for models of varying sizes in the Llama family (MC response format).} \label{fig:model_size_vs_anchored_responses} 
+\vskip -0.09in
+\end{figure}
+
+\begin{figure}[H]
+\vskip -0.01in
+\centering 
+\includegraphics[width=0.75\linewidth]{images/model_size_vs_anchored_responses_mistral.png}
+\caption{Number of anchored responses for models of varying sizes in the Mistral family (MC response format).} \label{fig:model_size_vs_anchored_responses_mistral} 
+\vskip -0.09in
+\end{figure}
+\vspace{\baselineskip}
+
+To delve deeper into this paradoxical behavior, we present additional evidence in Figure \ref{fig:mistral_all}, which focuses on the Mistral family of LLMs and displays the distribution of all different types of generated responses--No Redefinition Correct Responses, Anchored, Correct under Redefinition, and Completely Wrong--across all redefinition scenarios, question difficulty levels, and prompting methods, using the Multiple Choice response format. Once again, the anchoring phenomenon is unmistakably evident and seems to intensify not only with task complexity but also with model scaling. Another intriguing discovery, also noted in Table \ref{tab:anchored_table_NR}, is that in several cases the Anchored Responses rate exceeds--often by a large margin--accuracy score in the No Redefinition setting. Particularly for the largest model at the $Q_3$ level, it consistently chooses the correct-in-the-real-world option more frequently under the Redefinition setting, in which that answer is no longer correct, than in the No Redefinition setting where it is. In addition, in many of the most demanding redefinition reasoning problems, the models completely fail to identify the correct-under-the-redefinition answer, yielding extremely weak or even equal to zero Correct Responses rates. 
+
+\vspace{\baselineskip}
+\begin{figure}[H]
+\begin{subfigure}{\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/mistral7b_stacked_bars.png}
+         \vskip -0.01in
+        \caption{Response breakdown for Mistral 7B before and after constant redefinitions.}
+        \label{fig:mistral_large_MC}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/mistral_large_stacked_bars.png}
+        \vskip -0.01in
+        \caption{Response breakdown for Mistral Large (123B) before and after constant redefinitions.}
+        \label{fig:mistral_large_MC}
+    \end{subfigure}
+    \vskip -0.01in
+    \caption{Comparison of Mistral 7B and Mistral Large  responses on the MC response format.}
+    \label{fig:mistral_all}
+\end{figure}
+
+A similar pattern is observed in the Llama models, as demonstrated in Figure \ref{fig:llama_all}, which compares the different response rates for Llama 8B and Llama 405B. Notably, the number of anchored responses is once again significantly higher in the larger model, especially under the most difficult conditions.
+
+\begin{figure}[H]
+\begin{subfigure}{\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/llama8b_stacked_bars.png}
+         \vskip -0.01in
+        \caption{Response breakdown for Llama 8B before and after constant redefinitions.}
+        \label{fig:llama8b-mc}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/llama405_stacked_bars.png}
+        \vskip -0.01in
+        \caption{Response breakdown for Llama 405B before and after constant redefinitions.}
+        \label{fig:llama405b-mc}
+    \end{subfigure}
+    \vskip -0.01in
+    \caption{Comparison of Mistral 7B and Mistral Large  responses on the MC response format.}
+    \label{fig:llama_all}
+\end{figure}
+
+All these findings complicate the logical assumption that models with larger parameter scales are universally more capable to handle all types of tasks. Even when we explicitly prompt them to adapt to new values, larger LLMs, despite their generally stronger reasoning abilities, are more likely to prioritize internalized knowledge and disregard external counterfactual instructions.
+
+
+
+\subsection{Response format}
+
+The choice between Free-Form and Multiple Choice formats for generated responses seems to deeply affect model behavior. This comparison is demonstrated in Figure \ref{fig:size_comparison}, which shows the percentages of each model response type in the assignment and swapping redefinition scenarios of the $Q_3$ questions, across the Mistral and Llama model families. It is clear that the Multiple Choice format systematically leads to higher anchoring rates in both cases. For instance, in the Free-Form setup Llama 70B and 405B generate anchored response percentages of 33.33\% and 53.33\% respectively in the second swapping redefinition type, while, under the same conditions, Multiple Choice climbs to 73.33\% and 93.33\%. The same pattern holds for Mistral models, where Mixtral 8x7B anchors at 26.67\% and 46.67\% when asked to answer in a free-form way, but at 66.67\% and 73.33\% when given possible options to choose from in the easier and harder swapping cases. 
+
+\vspace{\baselineskip}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.6\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/mistral-anchored.png}
+         \vskip -0.01in
+        \caption{Response breakdown for Mistral models.}
+        \label{fig:mistral}
+    \end{subfigure}
+    \vskip 0.2in
+    \begin{subfigure}{0.6\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/llama-anchored.png}
+        \vskip -0.01in
+        \caption{Response breakdown for Llama models.}
+        \label{fig:llama}
+    \end{subfigure}
+    \vskip -0.01in
+    \caption{Results for the different Mistral and Llama models on $Q_3$ questions using ZS prompting. The order of the bars per redefinition type/level corresponds to increasing model size. The color coding is the same as in Figure \ref{fig:mistral_all}.}
+    \label{fig:size_comparison}
+\end{figure}
+
+\vspace{\baselineskip}
+
+
+This disparity is not particularly surprising and can be attributed to the fundamental nature of each format. In Free-Form question-answering, models are challenged to independently generate responses, without any external cues or reinforcement. As a result, LLMs seem to rely more on the instructions given in the redefinition prompt, which makes them more likely to reason accordingly rather than fall back on memorized facts. On the other hand, Multiple Choice response format introduces pre-existing options that effectively serve as cognitive traps. Among these, the default, pre-redefinition correct result evidently becomes the most powerful distractor, as it is inherently associated with high correctness probability, built during model pretraining. In other words, since LLMs are optimized to select high-probability token sequences, the Multiple Choice setup amplifies their tendency to favor these familiar, statistically "safe" options when they "see" them.
+
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\subsection{Assignment vs Swapping}
+
+In addition to the generated response format, a clear discrepancy emerges between the two redefinition types: Assignment ($R_a$) and Swapping ($R_s$). Experimental results indicate that swapping scenarios produce significantly higher anchoring rates compared to assignment ones. Figure \ref{fig:llama1} provides a response breakdown for all Llama 70B responses on $Q_1$-level questions, where it is rather obvious that swapping values triggers increased anchoring behavior across both response formats. More specifically, while this model maintains strong performance on the simple assignment tasks when tested on the easier questions about constant values--even achieving close or equal to zero anchored response rates (the highest is 13.33\%)--its anchoring behavior escalates drastically in the swapping case, reaching a 46.67\% percentage. A similar pattern is observed with the Claude 3.5 Sonnet model across the most difficult question level, as shown in Figure \ref{fig:claude3}. In this case, correct response accuracy seemingly drops and average anchoring rates go up from 15.93\% to 51.11\%, when shifting from simple assignment to value swapping. 
+\vspace{\baselineskip}
+\begin{figure}[H]
+\vskip -0.01in
+\centering 
+\includegraphics[width=0.8\linewidth]{images/llama1.png}
+\caption{Response breakdown for Llama 70B on $Q_1$-level questions across all prompting strategies. Within each redefinition type/level, the bars are ordered as follows: Zero-Shot, Chain-of-Thought, and Few-Shot.} \label{fig:llama1} 
+\vskip -0.09in
+\end{figure}
+
+\begin{figure}[H]
+\vskip -0.01in
+\centering 
+\includegraphics[width=0.8\linewidth]{images/claude3.png}
+\caption{Response breakdown for Claude 3.5 Sonnet on $Q_3$-level questions across all prompting strategies. Within each redefinition type/level, the bars are ordered as follows: Zero-Shot, Chain-of-Thought, and Few-Shot.} \label{fig:claude3} 
+\vskip -0.09in
+\end{figure}
+\vspace{\baselineskip}
+
+
+We hypothesize that this phenomenon arises from the way memory associations are activated during redefinitions. When a straightforward assignment is expected (e.g. "Redefine $\pi$ as 500"), a single, widely known entity is simply being replaced by a random number that does not trigger the model's prior memory mappings. This allows the model to focus on adjusting to this altered, entirely new concept of each constant. In contrast, in the value swapping scenario (e.g. "Redefine $\pi$ as $\phi$"), the introduction of the second familiar constant confuses the model by causing multiple strong memory association activations simultaneously. This increases the cognitive work load of the model, which must initially retrieve the default meanings of both entities and then correctly override their relationship. As observed, the model eventually succumbs to its pretraining biases, completely ignores the instructed swapping redefinition, and simply outputs the answer based on the original value of the queried constant.
+\vspace{\baselineskip}
+
+
+%\subsection{Levels of difficulty}
+
+%\subsubsection{Question difficulty}
+
+%\subsubsection{Redefinition difficulty}
+
+\subsection{Extended Thinking Blocks}
+
+Anthropic’s Claude 3.7 Sonnet offers an additional \textit{extended thinking} mode, which directs the model to analyze problems in greater detail by generating thinking content \textit{blocks} that capture its internal reasoning processes. We enabled this mode and repeated the same experiments, comparing its performance to the standard mode in order to examine whether this advanced reasoning mechanism can help Claude 3.7 Sonnet correctly handle the prompted redefinitions, particularly in the most challenging scenarios where its performance in standard mode rapidly declines. 
+\vspace{\baselineskip}
+\begin{figure}[H]
+\begin{subfigure}{\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/no_thinking_constants_FF.png}
+         \vskip -0.01in
+        \caption{Claude 3.7 Sonnet without Thinking in the FF response format.}
+        \label{fig:no_thinking_constants_FF}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/no_thinking_constants_MC.png}
+        \vskip -0.01in
+        \caption{Claude 3.7 Sonnet without Thinking in the MC response format.}
+        \label{fig:no_thinking_constants_MC}
+    \end{subfigure}
+        \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/thinking_constants_FF.png}
+        \vskip -0.01in
+        \caption{Claude 3.7 Sonnet with Thinking in the FF response format.}
+        \label{fig:thinking_constants_FF}
+    \end{subfigure}
+
+     \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/thinking_constants_MC.png}
+        \vskip -0.01in
+        \caption{Claude 3.7 Sonnet with Thinking in the MC response format.}
+        \label{fig:thinking_constants_MC}
+        \end{subfigure}
+    \caption{Claude 3.7 Sonnet results without and with Thinking.}
+    \label{fig:thinking}
+\end{figure}
+
+Figure \ref{fig:thinking} summarizes the results of Claude 3.7 Sonnet for both standard and extended thinking modes. As observed, while thinking slightly reduces the anchored response rates in a few cases, its overall impact is actually insignificant. This suggests that Claude 3.7 Sonnet, even when equipped with enhanced reasoning capabilities, cannot overcome the cognitive rigidity exposed by conceptually demanding redefinition prompts, underscoring a fundamental limitation in the flexibility and reasoning capacity of current state-of-the-art models.
+
+\subsection{The influence of prompting}
+
+As described in section \ref{sec:prompt-details}, we utilized different techniques to investigate how the design of our redefinition prompts influences models' ability to resist anchoring tendencies. Figure \ref{fig:model_zs_fs_cot} visualizes the comparison of anchored response rates for $Q_3$-level questions and across the second swapping redefinition scenario, under Zero-Shot, Few-Shot, and Chain-of-Thought prompting. A rather surprising finding is that the Chain-of-Thought prompting strategy--although generally known to improve LLM performance on reasoning problems by decomposing them into intermediate steps \cite{kojima2023largelanguagemodelszeroshot}--fails to help models to meaningfully reduce anchoring percentages. Even the more capable LLMs of larger parameter size that typically benefit from step-by-step reasoning chains continue to adhere to their entrenched knowledge. One notable exception is Mistral 8x7b, which, in the case of $Q_3$ questions and $R_s$2 level, manages a substantial reduction in anchoring across the CoT setting, dropping from 46.67\% to 13,33\%. Few-Shot prompting, on the other hand, appears more successful in mitigating anchoring behavior. Models such as Mistral Large, Titan express, Titan large, Command r, and Claude haiku significantly improve their performance in this setting. In fact, over 50\% of all evaluated LLMs achieve their lowest anchored response percentages under Few-Shot conditions. We assume that this occurs because the explicitly demonstrated instances in the FF-prompts--featuring similar redefinition scenarios accompanied with their correct solutions--provide a strong behavioral cue for the models to mimic. By "seeing" familiar entities being redefined and accepted within context, LLMs become more likely to "trust" the instruction over their pretraining priors.
+
+\vspace{\baselineskip}
+\begin{figure} [H]
+\vskip -0.08in
+\centering 
+\includegraphics[width=0.9\linewidth]{images/models_zs_fs_cot_v4.png} 
+\vskip -0.07in
+\caption{Comparison of the anchored response rate for $Q_3$ questions in the $R_{s2}$ redefinition level for all LLMs.} \label{fig:model_zs_fs_cot} 
+\vskip -0.1in
+\end{figure}
+\vspace{\baselineskip}
+Although some of the previously discussed cases show that different prompting techniques can lead to substantially varying anchoring rates, we cannot claim that a consistent pattern holds across all LLMs tested. We measured the average difference between the maximum and minimum anchored responses percentages for all models to be 16.29\% $\pm$ 9.22, which indicates that anchoring is a relatively \textit{prompt-insensitive phenomenon}. This conclusion is further supported by Tables \ref{tab:correlation_few} and \ref{tab:correlation_cot}, which report the correlation between performance before redefinition and the percentage of anchored responses in the Few-Shot and Chain-of-Thought setups--analogous to Table \ref{tab:correlation}, presented in Section \ref{sec:anchoring}. The overall pattern remains the same across all prompting methods, with only minor variations: in the first two levels of question difficulty, the two values are weakly correlated, while in the most difficult level, more knowledgable models are more prone to anchoring under redefinitions, resulting in stronger correlation values, especially in swapping scenarios.
+
+\begin{table}[H]
+\small
+    \centering
+    \begin{tabular}{l|ccc|cc}
+        \hline
+        Level & $R_a1$ & $R_a2$ & $R_a3$ & $R_s1$ & $R_s2$ \\ \hline
+        \multicolumn{6}{c}{Free-Form (FF)} \\ 
+         \hline
+        $Q_1$ & -0.055 & -0.129 & \cellcolor{lightdustygreen} -0.472 & 0.235 & -0.008 \\ 
+        $Q_2$ & -0.283 & \cellcolor{lightdustygreen} -0.359 &  \cellcolor{lightdustygreen} -0.444 & 0.085 & -0.148 \\
+        $Q_3$ & \cellcolor{lightdustypink} 0.356 & \cellcolor{lightdustypink} 0.374 & \cellcolor{lightdustypink} 0.492 & \cellcolor{lightdustypink} 0.596 & \cellcolor{lightdustypink} 0.823 \\
+        \hline
+        \multicolumn{6}{c}{Multiple Choice (MC)} \\ \hline
+        $Q_1$ & \cellcolor{lightdustygreen} -0.71 & \cellcolor{lightdustygreen} -0.624 & \cellcolor{lightdustygreen} -0.711 & \cellcolor{lightdustygreen} -0.304 &  -0.28 \\
+        $Q_2$ & -0.258 & \cellcolor{lightdustygreen} -0.473 & \cellcolor{lightdustygreen} -0.312 & \cellcolor{lightdustypink} 0.441 & -0.15 \\ 
+        $Q_3$ & 0.269 & \cellcolor{lightdustypink} 0.589 & 0.288 & \cellcolor{lightdustypink} 0.624 & \cellcolor{lightdustypink} 0.694 \\
+        \hline
+    \end{tabular}
+    \caption{Correlation between model performance before redefinition with the percentage of anchored answers for each type of constant redefinition and question level in FS setup. 
+    Cells highlighted in \textcolor{lightdustypink}{pink} indicate a \textbf{high positive correlation} ($>0.3$), while cells in \textcolor{lightdustygreen}{green} indicate a \textbf{high negative correlation} ($<-0.3$).}
+    \label{tab:correlation_few}
+\end{table}
+
+\begin{table}[H]
+\small
+    \centering
+    \begin{tabular}{l|ccc|cc}
+        \hline
+        Level & $R_a1$ & $R_a2$ & $R_a3$ & $R_s1$ & $R_s2$ \\ \hline
+        \multicolumn{6}{c}{Free-Form (FF)} \\ 
+        \hline
+        $Q_1$ & \cellcolor{lightdustygreen} -0.539 & \cellcolor{lightdustygreen} -0.542 & \cellcolor{lightdustygreen} -0.552 & -0.244 & \cellcolor{lightdustygreen} -0.319 \\
+        $Q_2$ & \cellcolor{lightdustygreen} -0.521 & \cellcolor{lightdustygreen} -0.626 & \cellcolor{lightdustygreen} -0.58 & 0.143 & -0.125 \\ 
+        $Q_3$ & \cellcolor{lightdustypink} 0.41 & 0.116 & -0.085 &  \cellcolor{lightdustypink} 0.71 &  \cellcolor{lightdustypink} 0.588 \\ 
+        \hline
+        \multicolumn{6}{c}{Multiple Choice (MC)} \\ \hline
+$Q_1$ & \cellcolor{lightdustygreen} -0.529 & \cellcolor{lightdustygreen} -0.483 & \cellcolor{lightdustygreen} -0.358 & -0.17 & 0.16 \\
+$Q_2$  & -0.183 & -0.224 & -0.202 & \cellcolor{lightdustypink} 0.329 & -0.044 \\
+ $Q_3$ & 0.134 & \cellcolor{lightdustypink} 0.366 & 0.009 & \cellcolor{lightdustypink} 0.679 & \cellcolor{lightdustypink} 0.657 \\
+        \hline
+    \end{tabular}
+    \caption{Correlation between model performance before redefinition with the percentage of anchored answers for each type of constant redefinition and question level in CoT setup. 
+    Cells highlighted in \textcolor{lightdustypink}{pink} indicate a \textbf{high positive correlation} ($>0.3$), while cells in \textcolor{lightdustygreen}{green} indicate a \textbf{high negative correlation} ($<-0.3$).}
+    \label{tab:correlation_cot}
+\end{table}
+
+
+\subsection{Completely Wrong Responses Analysis}
+\label{sec:refusal}
+
+\subsubsection{Refusal to Respond}
+
+Even though Anchored Responses gathered most of our interest in this work, as they best highlight models' failure to suppress and override high confidence internalized priors, another intriguing behavioral tendency emerged among Completely Wrong Responses. In several cases, models not only failed to provide a specific result, but they actively refused to engage with the redefined premise altogether. Instead, they generated outputs like: "I can't assist you with that. Redefining Planck's constant is not a valid scientific approach.",  "I should avoid making unsupported claims or providing potentially misleading information." or "I cannot reasonably redefine a scientific constant or answer a nonsensical question.". To systematically assess this refusal phenomenon, we further analyze Completely Wrong Responses by categorizing them into three types: 1) Actually Wrong Result: the model attempts to solve the task, but generates an answer that is neither correct under the redefinition nor the anchored one, 2) Blank Answer: the model produces a completely blank output or fails to conclude with a final result, and 3) Refusal to Answer: the model cites reasons such as the
+question being nonsensical, impossible to answer, or against its guidelines to explicitly refuse to perform the instructed redefinition. For each of these response categories, we calculate the corresponding rate. Table \ref{tab:refusal_rate_main} includes the average refusal rates across the three levels of question difficulty for all LLMs that exhibited this behavior.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{2cm}|p{1cm}|c|c}
+\hline
+Model                  & Prompt & FF & MC \\ \hline
+
+      \multirow{3}{*}{Mistral7B}  &  ZS & \underline{6.57 ± 11.99} & 13.34 ± 18.07 \\
+ &  CoT & 5.63 ± 8.89 & \underline{15.62 ± 16.45} \\
+ &  FS & \textbf{3.7 ± 7.58} & \textbf{10.07 ± 15.25} \\
+\hline
+\multirow{3}{*}{Mixtral8x7B}  &  ZS & \underline{18.0 ± 22.8} & 8.61 ± 16.97 \\
+ &  CoT & 9.22 ± 16.82 & \underline{15.5 ± 17.63} \\
+ &  FS & \textbf{10.98 ± 17.03} & \textbf{5.95 ± 18.79} \\
+\hline
+\multirow{3}{*}{Mistral Large}  &  ZS & \underline{16.33 ± 33.69} & 1.67 ± 6.24 \\
+ &  CoT & \textbf{8.33 ± 18.51} & \textbf{0 ± 0} \\
+ &  FS & 14.35 ± 26.96 & \underline{1.33 ± 4.99} \\
+\hline
+\multirow{3}{*}{Llama8B}  &  ZS & \underline{55.54 ± 24.37} & \underline{40.05 ± 18.58} \\
+ &  CoT & 35.25 ± 23.33 & 32.89 ± 23.21 \\
+ &  FS & \textbf{2.41 ± 6.64} & \textbf{0 ± 0}\\
+\hline
+\multirow{3}{*}{Llama70B}  &  ZS & \underline{38.66 ± 29.92} & 5.56 ± 14.49 \\
+ &  CoT & 9.17 ± 17.36 & \underline{13.33 ± 27.35} \\
+ &  FS & \textbf{0 ± 0} & \textbf{0 ± 0}\\
+\hline
+\multirow{3}{*}{Llama405B}  &  ZS & \underline{1.33 ± 4.99}  & \textbf{0 ± 0}\\
+ &  CoT & \textbf{0 ± 0} & \textbf{0 ± 0} \\
+ &  FS & \textbf{0 ± 0} & \textbf{0 ± 0} \\
+\hline
+\multirow{3}{*}{Titan lite}  &  ZS & \textbf{1.56 ± 3.19} & \textbf{0 ± 0}\\
+ &  CoT & \underline{3.03 ± 5.66} & \textbf{0 ± 0}\\
+ &  FS & 2.54 ± 5.39 & \textbf{0 ± 0} \\
+\hline
+\multirow{3}{*}{Titan express}  &  ZS & 0.56 ± 2.08  & \textbf{0 ± 0} \\
+ &  CoT & \underline{1.9 ± 7.13} & \textbf{0 ± 0} \\
+ &  FS & \textbf{0 ± 0} & \textbf{0 ± 0} \\ \hline
+\multirow{3}{*}{Titan large}  &  ZS & \underline{2.0 ± 5.42}  & \textbf{0 ± 0}\\
+ &  CoT & \textbf{0 ± 0} & \textbf{0 ± 0}\\
+ &  FS & \textbf{0 ± 0} & \textbf{0 ± 0}\\
+\hline
+\multirow{3}{*}{Command text}  &  ZS & \underline{3.33 ± 9.03}  & \textbf{0 ± 0} \\
+ &  CoT & \textbf{0 ± 0} & \textbf{0 ± 0}\\
+ &  FS & 0.83 ± 3.12  & \textbf{0 ± 0} \\
+\hline
+\multirow{3}{*}{Claude Instant}  &  ZS & \underline{1.69 ± 4.36}  & \textbf{0 ± 0} \\
+ &  CoT & \textbf{0 ± 0} & \textbf{0 ± 0}\\
+ &  FS & 4.07 ± 12.58  & \textbf{0 ± 0} \\
+\hline
+\multirow{3}{*}{\shortstack{Claude v2}}  &  ZS & \underline{20.48 ± 26.25} & 4.83 ± 9.29 \\
+ &  CoT & 14.31 ± 24.39 & \underline{10.0 ± 27.08} \\
+ &  FS & \textbf{8.91 ± 24.75} & \textbf{3.17 ± 8.81} \\
+\hline
+\end{tabular}
+\caption{Average refusal rates over all question levels (lowest values in \textbf{bold} and highest values \underline{underlined}). We exclude LLMs with zero refusal rate overall.}
+\label{tab:refusal_rate_main}
+\vskip -0.1in
+\end{table}
+
+We can clearly observe a significant variation in refusal rates across different model families. Notably, Mistral and Llama models appear to exhibit markedly higher refusal tendencies, in contrast to models from the Cohere, Titan, and Claude families, which are consistently associated with lower--and frequently equal to zero--refusal rates. Within each family, interestingly, model size seems to also influence refusal appearance: larger models tend to generate lower percentages. This likely suggests that the increase in parameter count causes LLMs to become more and more confident in reasoning through the redefinition and ultimately providing a response. However, this "confidence", in many cases, proves to be false, leading to more anchored responses, which also agrees with the increased rates remarked in Section \ref{sec:inverse}. On the other hand, we calculated the average correlations between No redefinition and Refusal to Answer responses and found them to be relatively weak (0.144 for the Free-Form and 0.039 for the Multiple Choice format), meaning that the refusal phenomenon is relatively independent of baseline reasoning capability. Regarding prompting strategies, the Few-Shot technique mostly achieves the lowest refusal rates. This aligns with expectations, because the demonstration of other successful redefinitions likely normalizes the task, reducing the chances that the models will judge the instruction as invalid or impossible and increasing its willingness to proceed to an attempt.
+
+
+\subsubsection{Case studies on Refusal and Overconfidence}
+
+We conduct a more detailed analysis of some of the most interesting cases regarding these refusal and error dynamics, including figures for Llama 8B (\ref{fig:llama8b-mc-refusal}), Llama 70B (\ref{fig:llama70b-mc-refusal}), Mixtral 8x7B (\ref{fig:mixtral-mc-refusal}), and Claude v2 (\ref{fig:claude-mc-refusal}), which demonstrate a comprehensive breakdown of Completely Wrong Responses across all experimental combinations, for both question-answer formats.
+
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+
+\textbf{Llama 8B}
+
+Interestingly, Llama 8B exhibits higher refusal rates on the easier question levels. Instead of recognizing its own limitations in the most challenging cases, it engages with the problem more and more frequently, even though it mostly fails, as indicated by the low Correct Responses and high Anchored Responses rates at level $Q_3$. The model's tendency to respond even when lacking sufficient reasoning capabilities highlights a problematic form of \textit{overconfidence}. 
+
+\vspace{\baselineskip}
+
+\begin{figure}[H]
+\begin{subfigure}{\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/llama8b_ff_refusal.png}
+         \vskip -0.01in
+    \caption{Response breakdown for Llama8B FF responses.}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/llama8b_mc_refusal.png}
+        \vskip -0.01in
+        \caption{Response breakdown for Llama8B MC responses.}
+    \end{subfigure}
+    \vskip -0.01in
+    \caption{Completely wrong responses breakdown for Llama8B. 
+\textcolor{dustyblue}{Blue} denotes actually wrong responses,
+\textcolor{dustypurple}{Purple} indicates refusals, while \textcolor{dustygray}{Gray} instances correspond to blank responses.}
+    \label{fig:llama8b-mc-refusal}
+\end{figure}
+
+\vspace{\baselineskip}
+
+
+Comparing Multiple Choice to Free-Form response formats, we can clearly observe that, when asked to choose between possible options, Llama 8B generates higher Blank Response rates. In fact, across the Free-Form format these rates are almost entirely zero. This indicates that unrestricted generation may foster a false sense of confidence, while selecting between specific answers can lead to confusion when the model is unable to handle the queried reasoning task correctly. However, it is particularly interesting that refusal behavior is also evident throughout Multiple Choice experiments. Even when the prompt explicitly states that the correct answer to the given problem exists and is actually included among the Multiple Choice options, Llama 8B still declines to attempt the task.
+
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+
+
+\textbf{Llama 70B}
+
+In the case of Llama 70B, these behavioral tendencies seem to follow a different trajectory. Refusal and blank answer rates are generally lower than those of its smaller counterpart, which supports the claim in the previous section that models of larger parameter size are more confident in generating a solution to the reasoning problem. Prompting strategies also appear to mitigate refusal behavior. Both Chain-of-Thought and Few-Shot techniques result in lower refusal percentages compared to the Zero-Shot case. In fact, in the Few-Shot setup, Llama 70B did not generate any Refusal-to-Answer instancies across all different question/redefinition/format combinations.
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+\begin{figure}[H]
+\begin{subfigure}{\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/llama70b_ff_refusal.png}
+         \vskip -0.01in
+    \caption{Response breakdown for Llama70B FF responses.}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/llama70b_mc_refusal.png}
+        \vskip -0.01in
+        \caption{Response breakdown for Llama70B MC responses.}
+    \end{subfigure}
+    \vskip -0.01in
+    \caption{Completely wrong responses breakdown for Llama70B. 
+\textcolor{dustyblue}{Blue} denotes actually wrong responses,
+\textcolor{dustypurple}{Purple} indicates refusals, while \textcolor{dustygray}{Gray} instances correspond to blank responses}.
+    \label{fig:llama70b-mc-refusal}
+\end{figure}
+
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+
+\textbf{Mixtral 8x7B}
+
+Mixtral 8x7B reveals an intriguing distinction between response formats. In the Few-Shot format, refusal behavior decreases with question difficulty, leading to more frequent completely wrong outputs, suggesting a form of overconfidence that counterintuitively intensifies under more challenging conditions. Conversely, in the Multiple Choice case, refusal rates increase as questions become more difficult. When restricted to specific options, Mixtral 8x7B is more likely to detect the epistemic conflict and refuse to attempt a solution in complex reasoning scenarios.
+
+\vspace{\baselineskip}
+
+\begin{figure}[H]
+\begin{subfigure}{\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/mistral8x7b_ff_refusal.png}
+         \vskip -0.01in
+    \caption{Response breakdown for Mixtral8x7 FF responses.}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/mistral8x7b_mc_refusal.png}
+        \vskip -0.01in
+        \caption{Response breakdown for Mixtral8x7 MC responses.}
+    \end{subfigure}
+    \vskip -0.01in
+    \caption{Completely wrong responses breakdown for Mixtral8x7. 
+\textcolor{dustyblue}{Blue} denotes actually wrong responses,
+\textcolor{dustypurple}{Purple} indicates refusals, while \textcolor{dustygray}{Gray} instances correspond to blank responses}.
+    \label{fig:mixtral-mc-refusal}
+\end{figure}
+
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+\textbf{Claude v2}
+
+Claude v2 exhibits an inconsistent pattern in how it reacts to the redefinition instruction. On the easiest questions, refusal and error rates often fluctuate sharply between 100\% Refusal-to-Answer and 100\% Actually-Wrong-Result. As difficulty increases, Claude v2 becomes more confidently willing to engage with the task, even if it eventually fails. In the Multiple Choice response format in particular, refusal behavior is significantly reduced, suggesting that the model presumably trusts that the queried problem is solvable and proceeds to identify the correct solution among the given options.
+\vspace{\baselineskip}
+
+
+\begin{figure}[H]
+\begin{subfigure}{\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/claude_v2_ff_refusal.png}
+         \vskip -0.01in
+    \caption{Response breakdown for Claude v2 FF responses.}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/claude_v2_mc_refusal.png}
+        \vskip -0.01in
+        \caption{Response breakdown for Claude v2 MC responses.}
+    \end{subfigure}
+    \vskip -0.01in
+    \caption{Completely wrong responses breakdown for Claude v2. 
+\textcolor{dustyblue}{Blue} denotes actually wrong responses,
+\textcolor{dustypurple}{Purple} indicates refusals, while \textcolor{dustygray}{Gray} instances correspond to blank responses}. 
+    \label{fig:claude-mc-refusal}
+\end{figure}
+
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+\subsubsection{Refusal-Adjusted Anchoring: A Refined Perspective}
+
+\input{tables/anchored_refusal}
+\vspace{\baselineskip}
+
+
+In previous sections, we highlighted the ubiquitous role of anchoring in redefinition reasoning tasks. The uncovering of refusal behavior, however, raises an interesting question: Would anchoring rates more accurately reflect model behavior if extracted only from the outputs where the model actually attempted to solve the problem? Therefore, to isolate LLMs' "true" anchoring tendencies, we conduct a refined analysis that excludes responses in which the model refused to answer from the Anchored Responses rates calculation. These adjusted results are demonstrated in Table \ref{tab:anchored_rate_refusal}, covering the $R_a$3 and $R_s$2 redefinition scenarios and the $Q_3$-level of question difficulty. Models that never exhibit refusal behavior are not included in this table, as their rates are indeed unaffected by this filtering and are identical to those presented in Table \ref{tab:anchored_table}.
+
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+
+
+

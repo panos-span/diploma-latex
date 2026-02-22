@@ -1,0 +1,35 @@
+\begin{table}[H]
+
+\centering
+\small
+\begin{tabular}{p{3cm}|p{0.7cm}p{0.7cm}|p{0.7cm}p{0.7cm}|p{0.7cm}p{0.7cm}|p{0.7cm}p{0.7cm}|p{0.7cm}p{0.7cm}|p{0.7cm}p{0.7cm}}
+\hline
+\multirow{3}{*}{Μοντέλο} & \multicolumn{6}{c|}{$R_a3$}                                                               & \multicolumn{6}{c}{$R_s2$}                                                                \\ \cline{2-13}
+                       & \multicolumn{2}{c}{$Q_1$} & \multicolumn{2}{c}{$Q_2$} & \multicolumn{2}{c|}{$Q_3$} & \multicolumn{2}{c}{$Q_1$} & \multicolumn{2}{c}{$Q_2$} & \multicolumn{2}{c}{$Q_3$} \\ \cline{2-13}
+                       & FF           & MC           & FF           & MC           & FF            & MC           & FF           & MC           & FF           & MC           & FF           & MC           \\ \hline
+
+Mistral7B & \textbf{33.33} & \textbf{46.67} & \textbf{33.33} & \textbf{26.67} & 26.67 & 40.0 & 33.33 & 53.33 & 13.33 & 33.33 & 26.67 & 20.0 \\ 
+Mixtral8x7B & 33.33 & 33.33 & 26.67 & 26.67 & 20.0 & 33.33 & 26.67 & 46.67 & 40.0 & \textbf{53.33} & 46.67 & \textbf{73.33} \\ 
+Mistral Large (123B) & 33.33 & 20.0 & 26.67 & 26.67 & \textbf{53.33} & \textbf{66.67} & \textbf{66.67} & \textbf{53.33} & \textbf{46.67} & 40.0 & \textbf{73.33} & 66.67 \\  \hline
+Llama8B & 0.0 & \textbf{26.67} & 0.0 & \textbf{26.67} & 13.33 & 33.33 & 20.0 & 13.33 & \textbf{26.67} & 40.0 & 20.0 & 20.0 \\ 
+Llama70B & \textbf{6.67 }& 13.33 & 0.0 & 0.0 & 13.33 & 40.0 & 33.33 & 46.67 & 13.33 & \textbf{46.67} & 33.33 & 73.33 \\ 
+Llama405B & 0.0 & 0.0 & 0.0 & 13.33 & \textbf{26.67} & \textbf{53.33} & \textbf{26.67} & \textbf{46.67} & 6.67 & 20.0 & \textbf{53.33} & \textbf{93.33} \\  \hline
+Titan lite    & 13.33 & 20.0  & 20.0  & 20.0  & 0.0   & 40.0  & 40.0  & 33.33  & 20.0  & 33.33  & 6.67   & 26.67 \\ 
+Titan express & 20.0  & \textbf{26.67} & 13.33  & 13.33  & \textbf{20.0}  & 13.33  & 40.0  & \textbf{53.33}  & \textbf{20.0}  & 20.0  & 33.33  & \textbf{26.67} \\ 
+Titan large   & \textbf{26.67}  & 20.0  & \textbf{20.0}  & 6.67  & 13.33  & \textbf{40.0}  & \textbf{60.0}  & 40.0  & 13.33  & \textbf{33.33}  & \textbf{33.33}  & 20.0 \\   \hline
+Command r & 0.0 & 6.67 & \textbf{20.0} & \textbf{33.33} & \textbf{26.67} & \textbf{53.33} & \textbf{53.33} & 13.33 & 20.0 & 6.67 & \textbf{33.33} & \textbf{46.67} \\ 
+Command r + & 6.67 & 13.33 & 0.0 & 13.33 & 13.33 & 26.67 & 13.33 & 20.0 & 26.67 & 6.67 & 33.33 & 26.67 \\ 
+Command light text & 6.67 & 13.33 & 13.33 & 20.0 & 0.0 & 40.0 & 13.33 & 20.0 & \textbf{26.67} & \textbf{20.0} & 13.33 & 13.33 \\ 
+Command text & \textbf{13.33} & \textbf{20.0} & 6.67 & 6.67 & 6.67 & 26.67 & 40.0 & \textbf{26.67} & 13.33 & 26.67 & 13.33 & 33.33 \\   \hline
+Claude opus & 13.33 & 0.0 & 6.67 & 6.67 & 33.33 & \textbf{46.67} & \textbf{46.67} & \textbf{40.0} & 20.0 & \textbf{26.67} & 53.33 & 73.33 \\ 
+Claude instant & 0.0 & 13.33 & 13.33 & \textbf{20.0 } & 26.67 & 46.67 & 33.33 & 20.0 & 33.33 & 40.0 & 46.67 & 60.0 \\ 
+Claude haiku & 20.0 & 13.33 & 6.67 & 0.0 & 20.0 & 20.0 & 26.67 & 6.67 & 20.0 & 20.0 & 40.0 & 53.33 \\ 
+Claude v2 & 26.67  & 13.33  & \textbf{20.0 } & 0.0 & \textbf{46.67} & 40.0 & 13.33 & 40.0 & \textbf{33.33} & 20.0 & 40.0 & 66.67 \\
+Claude 3.5 Sonnet& \textbf{26.67} & \textbf{13.33} & 0.0 & 13.33 & 13.33 & 33.33 & 33.33 & 40.0 & 20.0 & 20.0 & \textbf{60.0 } & \textbf{73.33} \\ 
+Claude 3.7 Sonnet & 0.0  & 0.0  & 0.0 & 6.67 & 13.33 & 13.33 & 33.33 & 20.0 & 6.67 & 20.0 & 40.0 & 33.33 \\ 
+\hline
+\end{tabular}
+
+\caption{Ποσοστά προσκόλλησης όλων των ΜΓΜ με προτροπές χωρίς παραδείγματα για τις πιο δύσκολες περιπτώσεις επαναορισμών σταθερών. Το υψηλότερο ποσοστό για κάθε οικογένεια μοντέλων επισημαίνεται με \textbf{έντονη γραφή}.}
+\label{tab:anchored_table_gr}
+\end{table}

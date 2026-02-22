@@ -1,0 +1,32 @@
+\par\noindent\rule{\linewidth}{0.4pt}
+
+You are tasked with analyzing an LLM answer that does not match either of two reference answers: "Reference Answer 1" and "Reference Answer 2". Your job is to classify the LLM answer into one of the following categories: \\
+
+1. **Wrong Answer**: The LLM provided an incorrect response to the question, either factually or logically. \\
+2. **Blank Answer**: The LLM provided no substantive response, leaving the answer blank or completely empty. \\
+3. **Refusal to Answer**: The LLM explicitly refused to answer the question, citing reasons such as the question being nonsensical, impossible to answer, or against its guidelines. \\
+
+**Instructions:** \\
+1. Analyze the LLM answer and determine which of the three categories it belongs to. \\
+2. If the LLM answer is a **Wrong Answer**, output: \\
+wrong \\
+3. If the LLM answer is a **Blank Answer**, output: \\
+blank \\
+4. If the LLM answer is a **Refusal to Answer**, output: \\
+refusal \\
+5. If the classification is unclear, choose the category that best fits the content of the LLM answer. \\
+
+Do not output explanations, justifications, or any additional text — only the words "wrong", "blank", or "refusal". \\
+
+**LLM Answer:** \\
+\textbf{\{llm\_answer\}} \\
+
+**Reference Answer 1:** \\
+\textbf{\{reference\_answer\_1\}} \\
+
+**Reference Answer 2:** \\
+\textbf{\{reference\_answer\_2\}} \\
+
+**Output:** \\
+
+\par\noindent\rule{\linewidth}{0.4pt}

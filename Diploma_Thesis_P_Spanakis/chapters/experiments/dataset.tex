@@ -1,0 +1,255 @@
+\section{Task Description and Dataset}
+\label{sec:dataset}
+
+\subsection{Task Description}
+
+The SemEval-2026 Task 10 dataset comprises 4,800 annotations spanning 4,100 unique Reddit submission statements from more than 190 subreddits, divided into two subtasks:
+
+\textbf{\textit{i)} S1: Conspiracy Marker Extraction} contains textual spans that express core conspiracy markers grounded in evolutionary psychology. One or more marker types may appear in each comment, falling in the following categories:
+\begin{itemize}
+  \item \textsc{Actor}: mentions of individual or group agents
+  \item \textsc{Action}: descriptions of what the actor is doing
+  \item \textsc{Effect}: consequences of the actions
+  \item \textsc{Victim}: who is being harmed
+  \item \textsc{Evidence}: claims or proof used to support the theory
+\end{itemize}
+
+\textbf{\textit{ii)} S2: Conspiracy Detection} assigns conspiracy-related or not conspiracy-related labels to Reddit comments.
+
+\subsection{Data Preprocessing}
+
+Since individual documents may have multiple annotators, we apply \textbf{majority-vote consensus} at both document and span level. For document labels, the most frequent annotation is selected and exact ties are discarded. For spans, overlapping annotations of the same marker type are clustered by character overlap; clusters reaching the majority threshold (over half of annotators) produce a single representative span (the longest in the cluster), while sub-threshold clusters are dropped. This yields deterministic, high-agreement annotations suitable for both training and few-shot retrieval.
+
+After consensus, we remove near-duplicate documents via locality-sensitive hashing (LSH, 8 bands), reducing the training set from 3,682 rehydrated documents to 3,271 unique instances. \textit{Can't Tell} documents (607 in training, $\sim$18.6\%) are handled asymmetrically: they are \textbf{retained for S1} (marker extraction can still learn from ambiguous texts containing valid spans) but \textbf{excluded from S2} (conspiracy detection requires a binary ground truth). Additionally, documents with no annotated spans and no annotator disagreement are included in the S1 training corpus with 15\% probability, serving as negative calibration examples that teach the Generator to produce empty extractions for non-conspiratorial text.
+
+For S2 corpus curation, a subtype-stratified sampling strategy selects documents across six rhetorical subtypes (hard negatives, mundane negatives, debunking negatives, evangelist conspiracy, insider conspiracy, and general conspiracy) to ensure balanced exposure during prompt optimization, with hard negatives defined broadly to include both non-conspiratorial texts containing markers \textit{and} texts matching debunking-vocabulary cues.
+
+\subsection{Exploratory Data Analysis}
+\label{sec:eda}
+
+\subsubsection{Annotation Coverage}
+
+As mentioned in the official website of the task, there are more than 4,100 unique Reddit comments, including 4,800 annotations in total. Most comments ($\sim$3,500) have only one annotation, 550 have two, and 50 have more. Regarding marker density, around 4,000 comments have at least one psycholinguistic marker annotation. The exact distribution of marker category coverage in comments is demonstrated in Figure~\ref{fig:num-of-markers}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/num-of-markers.png}
+  \caption{Number of marker types in the dataset.}
+  \label{fig:num-of-markers}
+\end{figure}
+
+\subsubsection{Label Distribution}
+
+The dataset considers two clear classes, \textit{Yes (Conspiracy)} and \textit{No (Not Conspiracy)}, while the class \textit{Can't Tell} covers uncertain instances. The distribution of labels in the training data is illustrated in Figure~\ref{fig:label-distr}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/label-distr.png}
+  \caption{Label distribution for conspiracy detection.}
+  \label{fig:label-distr}
+\end{figure}
+
+Each marker category (\textit{Actor}, \textit{Action}, \textit{Effect}, \textit{Evidence}, \textit{Victim}) appears with different frequency within the dataset. The distribution of the five psycholinguistic marker types in the training dataset follows that of Figure~\ref{fig:marker-types}. Based on this Figure, we can conclude that conspiracy narratives rely on a small set of recurring rhetorical functions instantiated as markers, but no single function dominates the discourse.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/marker-types.png}
+  \caption{Frequency per marker type.}
+  \label{fig:marker-types}
+\end{figure}
+
+\subsubsection{Annotation Density}
+
+Annotation density is an interesting feature that implicitly indicates the difficulty of annotating the dataset: a sparsely annotated dataset showcases that conspiratorial evidence is semantically well-diffused within the text and hard to be acknowledged by humans. Indeed, several documents contain 0 annotations, while most documents do not exceed 20 annotations. The long-tailed distribution of markers per document presented in Figure~\ref{fig:density} validates the difficulty of the task.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/annot-density.png}
+  \caption{Number of marker annotations per document.}
+  \label{fig:density}
+\end{figure}
+
+It is also useful to display the co-occurrences of markers in the training data, as in Figure~\ref{fig:cooccurrence}, indicating that marker types frequently appear together within the same documents, which in turn suggests that annotations capture recurring combinations of rhetorical roles.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/cooccurrence.png}
+  \caption{Marker type co-occurrences.}
+  \label{fig:cooccurrence}
+\end{figure}
+
+The high self-co-occurrence of \textit{Action} and \textit{Actor} markers indicates that many documents describe multiple actions and multiple agents, consistent with narratives that unfold through sequences of events involving several entities rather than isolated claims. The strong co-occurrence between \textit{Action} and \textit{Actor} markers further highlights agency attribution as a central organizing principle, with conspiracy narratives frequently linking actors to specific actions. In contrast, \textit{Effect} and \textit{Victim} markers show more moderate self-co-occurrence, suggesting that while consequences and affected parties are recurrent elements, they are typically less elaborated than agency and action. Notably, \textit{Evidence} and \textit{Victim} markers rarely co-occur within the same documents, indicating a separation between evidential and victim-centered framing.
+
+\subsubsection{Span Overlap Analysis}
+
+To quantify the degree of span overlap beyond binary co-occurrence, we compute the mean character-level Intersection over Union (IoU) for all overlapping span pairs across marker types, presented in Figure~\ref{fig:iou-matrix}. The highest pairwise overlap occurs between \textsc{Actor} and \textsc{Victim} (mean IoU$=$0.65), reflecting the frequent rhetorical pattern where the accused party is simultaneously framed as the antagonist and the affected entity. \textsc{Action}$\leftrightarrow$\textsc{Effect} overlaps are also substantial (mean IoU$=$0.56), confirming that annotators sometimes struggle to delineate where a described process ends and its consequence begins. These overlap patterns directly motivate the S1 Critic's boundary enforcement rules.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/mean-iou-matrix.png}
+  \caption{Mean IoU of overlapping spans across marker type pairs. Higher values indicate greater boundary ambiguity between categories.}
+  \label{fig:iou-matrix}
+\end{figure}
+
+\subsubsection{Marker Distribution Across Subreddits}
+
+To further decompose the annotation density problem, we investigate the percentage of annotated markers per subreddit, illustrated in Figure~\ref{fig:subreddits}. Subreddits pose some noticeable differences regarding the dominant marker type. For example, \textit{Action} appears rather stable across subreddits, consistently describing \textit{what is being done}, regardless of community. The role of \textit{Actor} becomes more prominent in some communities (Israel\_Palestine) over other rhetorical roles. \textit{Evidence} presents some mild variability, and \textit{Victim}, associated with moralization and emotional appeal, covers higher proportion of markers in PlanetToday and TrueCrime subreddits.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/pct-subreddit.png}
+  \caption{Marker type distribution across Subreddits.}
+  \label{fig:subreddits}
+\end{figure}
+
+\subsubsection{Span Position Analysis}
+
+Figure~\ref{fig:span-position} displays the kernel density estimate (KDE) of normalized span center positions within documents, broken down by marker type. \textsc{Actor} spans concentrate toward the beginning of documents (median position$=$0.09), consistent with narrative openings that establish agency. In contrast, \textsc{Effect} spans peak later (median position$=$0.43), reflecting their role as narrative consequences that follow causal chains. \textsc{Evidence} spans exhibit the broadest positional spread, appearing throughout documents as authors interleave claims with supporting citations. These positional priors informed the S1 Generator's attention allocation.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/span-position-analysis.png}
+  \caption{Normalized position of marker spans within documents (0$=$start, 1$=$end). KDE per marker type.}
+  \label{fig:span-position}
+\end{figure}
+
+\subsubsection{Span Length and Mass}
+
+Analysis of marker span lengths (Figure~\ref{fig:span-length}) shows that most annotations correspond to short to medium-length text segments, while very long spans (more than 200 characters) are extremely rare. This indicates that the rhetorical roles captured by the annotation scheme are typically expressed through localized and well-defined linguistic units.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/span-length.png}
+  \caption{Span length distribution.}
+  \label{fig:span-length}
+\end{figure}
+
+We also measure the ``span mass'' (Figure~\ref{fig:mass}), which reveals how much of the document is covered by annotated psycholinguistic spans (in characters). The relationship between total marker span length and the number of markers per document exhibits a clear positive trend, indicating that annotation coverage scales approximately linearly with annotation density.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/span-mass.png}
+  \caption{Marker span mass.}
+  \label{fig:mass}
+\end{figure}
+
+\subsubsection{EDA-Driven Design Decisions}
+
+Beyond descriptive statistics, our exploratory analysis produced quantitative insights that directly informed architectural choices:
+\begin{itemize}
+  \item Pairwise IoU analysis revealed that \textsc{Action}$\leftrightarrow$\textsc{Effect} spans overlap 46.4\% of the time at IoU$\geq$0.5, motivating the S1 Critic's explicit boundary enforcement.
+  \item Pronoun density analysis showed that conspiracy texts use third-person distancing pronouns (\textit{they/them}) at significantly higher rates, informing the Forensic Profiler's Agency Gap metric.
+  \item Question density analysis identified elevated rhetorical question rates in conspiracy texts, leading to the JAQing detection feature.
+  \item Mann--Whitney tests with Benjamini--Hochberg correction confirmed that absolutist language rates differ significantly between conspiracy and non-conspiracy documents ($p_{\text{adj}}<0.001$, Cliff's $\delta=0.05$), validating the inclusion of epistemic intensity as a forensic profiler feature.
+\end{itemize}
+
+\subsubsection{Lexical Signal Analysis}
+\label{sec:lexical-signals}
+
+To quantify the psycholinguistic divergence between document classes, we compute per-document absolutist language and hedging rates (tokens per 1,000 words), aggregated by the three document-level labels. An \textit{absolutist} word is one expressing all-or-nothing thinking (e.g., ``always'', ``never'', ``completely'', ``nothing''), while a \textit{hedge} word signals epistemic uncertainty (e.g., ``perhaps'', ``maybe'', ``somewhat'', ``could'').
+
+Table~\ref{tab:abs-hedge} reports means, medians, and standard deviations. Conspiracy-labeled documents exhibit a higher mean absolutist rate (0.484 per 1,000 words) compared to non-conspiracy (0.305) and can't-tell (0.337) documents. In contrast, hedging rates are relatively stable across all three labels, suggesting that hedging language is a general rhetorical feature rather than a conspiracy-specific signal.
+
+\begin{table}[H]
+  \centering
+  \caption{Absolutist and hedging language rates per 1,000 words, by document label.}
+  \label{tab:abs-hedge}
+  \small
+  \begin{tabular}{l|cccc|cccc}
+    \hline
+    \textbf{Label} & \multicolumn{4}{c|}{\textbf{Absolutist (per 1k)}} & \multicolumn{4}{c}{\textbf{Hedges (per 1k)}}                                              \\
+                   & Mean                                              & Med.                                         & Std   & $n$  & Mean  & Med. & Std   & $n$  \\
+    \hline
+    Conspiracy     & 0.484                                             & 0.0                                          & 1.431 & 1169 & 0.610 & 0.0  & 1.430 & 1169 \\
+    Non-conspiracy & 0.305                                             & 0.0                                          & 1.038 & 1595 & 0.667 & 0.0  & 1.592 & 1595 \\
+    Can't Tell     & 0.337                                             & 0.0                                          & 1.264 & 607  & 0.679 & 0.0  & 1.729 & 607  \\
+    \hline
+  \end{tabular}
+\end{table}
+
+We further report effect sizes via Cliff's $\delta$ with Benjamini--Hochberg-corrected $p$-values in Table~\ref{tab:lexical-effects}. The conspiracy-vs-non-conspiracy comparison yields a small but statistically significant effect ($\delta=0.051$, $p_{\text{BH}}=0.0002$), confirming that absolutist framing is a genuine---if subtle---linguistic marker of conspiracy endorsement.
+
+\begin{table}[H]
+  \centering
+  \caption{Pairwise effect sizes for absolutist language rates (Mann--Whitney, BH-corrected).}
+  \label{tab:lexical-effects}
+  \small
+  \begin{tabular}{ll|cc}
+    \hline
+    \textbf{Group A} & \textbf{Group B} & \textbf{Cliff's $\delta$} & \textbf{$p_{\text{BH}}$} \\
+    \hline
+    Can't Tell       & Conspiracy       & $-0.049$                  & 0.008                    \\
+    Can't Tell       & Non-conspiracy   & $+0.003$                  & 0.860                    \\
+    Conspiracy       & Non-conspiracy   & $+0.051$                  & 0.0002                   \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Figures~\ref{fig:absolutist-rate} and~\ref{fig:hedge-rate} visualize the distribution of these lexical signals across document labels, illustrating the right-tailed distribution characteristic of these low-density features.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/absolutist_language_rate.png}
+  \caption{Absolutist language rate per 1,000 words by document label. Conspiracy-labeled documents show elevated absolutist framing.}
+  \label{fig:absolutist-rate}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/hedges_rate.png}
+  \caption{Hedging language rate per 1,000 words by document label. Hedging rates remain stable across labels.}
+  \label{fig:hedge-rate}
+\end{figure}
+
+\subsubsection{Label Coverage and Span Density}
+\label{sec:label-coverage}
+
+Table~\ref{tab:label-coverage} reports the coverage rate (fraction of conspiracy-labeled documents containing at least one span of that type) and the average number of spans per document, computed from the processed training set. \textsc{Actor} and \textsc{Action} markers appear in nearly 90\% of conspiracy documents, confirming their role as the primary building blocks of conspiratorial narratives. In contrast, \textsc{Victim} markers appear in only 59\% of documents, reflecting the fact that not all conspiracy narratives explicitly identify victims.
+
+\begin{table}[H]
+  \centering
+  \caption{Label coverage rates and average spans per document in the processed training corpus.}
+  \label{tab:label-coverage}
+  \small
+  \begin{tabular}{l|cc}
+    \hline
+    \textbf{Marker type} & \textbf{Coverage rate} & \textbf{Avg. spans/doc} \\
+    \hline
+    Actor                & 0.896                  & 2.023                   \\
+    Action               & 0.887                  & 1.525                   \\
+    Effect               & 0.720                  & 1.446                   \\
+    Evidence             & 0.703                  & 1.442                   \\
+    Victim               & 0.591                  & 1.575                   \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\subsubsection{Pairwise Overlap Statistics}
+
+Table~\ref{tab:overlap-stats} provides a comprehensive view of pairwise overlap statistics across all ten unordered marker-type pairs, computed from overlapping span pairs in the training corpus. The highest mean IoU occurs for \textsc{Actor}$\leftrightarrow$\textsc{Victim} (0.654), consistent with the rhetorical pattern where the accused party is simultaneously framed as antagonist and affected entity. The highest volume of overlapping pairs involves \textsc{Effect}$\leftrightarrow$\textsc{Victim} ($n=227$), reflecting the narrative tendency to co-locate consequences with affected parties.
+
+\begin{table}[H]
+  \centering
+  \caption{Pairwise overlap statistics for all marker-type combinations. \textit{IoU@0.5}: fraction of pairs with IoU$\geq$0.5.}
+  \label{tab:overlap-stats}
+  \small
+  \begin{tabular}{l|rccc}
+    \hline
+    \textbf{Pair}   & $n$ & \textbf{Mean IoU} & \textbf{IoU@0.5} & \textbf{Contain rate} \\
+    \hline
+    Actor/Victim    & 77  & 0.654             & 0.610            & 0.935                 \\
+    Action/Effect   & 207 & 0.556             & 0.464            & 0.879                 \\
+    Action/Evidence & 193 & 0.421             & 0.363            & 0.829                 \\
+    Effect/Evidence & 134 & 0.416             & 0.328            & 0.873                 \\
+    Effect/Victim   & 227 & 0.292             & 0.159            & 0.934                 \\
+    Action/Actor    & 132 & 0.294             & 0.189            & 0.864                 \\
+    Action/Victim   & 199 & 0.289             & 0.181            & 0.960                 \\
+    Actor/Evidence  & 176 & 0.258             & 0.153            & 0.903                 \\
+    Evidence/Victim & 116 & 0.218             & 0.112            & 0.922                 \\
+    Actor/Effect    & 69  & 0.186             & 0.058            & 0.884                 \\
+    \hline
+  \end{tabular}
+\end{table}
+
+The containment rate---the fraction of pairs where one span is entirely contained within the other---exceeds 85\% for all marker combinations. This high containment reflects the nested nature of conspiratorial narratives, where shorter spans (typically \textsc{Actor}) are embedded within longer spans describing \textsc{Action} or \textsc{Effect}. These statistics directly motivated the S1 Critic's boundary enforcement rules and the Deterministic Verifier's handling of overlapping span candidates.
+

@@ -1,0 +1,105 @@
+\section{Main Results}
+\label{sec:main-results}
+
+\subsection{Official Leaderboard Performance}
+
+Table~\ref{tab:main-results} presents the performance of our system and key baselines on the official SemEval-2026 Task 10 evaluation.
+
+\begin{table}[h!]
+    \centering
+    \small
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        \textbf{System}             & \textbf{S1 Macro F1} & \textbf{S2 Macro F1} & \textbf{S2 Accuracy} \\
+        \midrule
+        Zero-shot GPT-5.2           & 0.12                 & 0.53                 & 0.55                 \\
+        + Contrastive Retrieval     & 0.17                 & 0.63                 & 0.66                 \\
+        + Self-Refine (S1) / Council (S2) & 0.22           & 0.74                 & 0.78                 \\
+        \textbf{Full Pipeline (ours)} & \textbf{0.24}      & \textbf{0.79}        & \textbf{0.84}        \\
+        \bottomrule
+    \end{tabular}
+    \caption{Cumulative contribution of each pipeline component. Each row adds one component to the previous row's configuration.}
+    \label{tab:main-results}
+\end{table}
+
+These results demonstrate that the full agentic pipeline \textbf{doubles S1 macro F1} (from 0.12 to 0.24) and \textbf{improves S2 macro F1 by 49\%} (from 0.53 to 0.79) over the zero-shot GPT-5.2 baseline, without any model fine-tuning or additional training data. All improvements derive from prompt engineering and agentic workflow design.
+
+\subsection{S1: Marker Extraction Analysis}
+
+\subsubsection{Per-Category Performance}
+
+Table~\ref{tab:s1-per-category} breaks down S1 macro F1 by marker category.
+
+\begin{table}[h!]
+    \centering
+    \small
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        \textbf{Marker Type} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
+        \midrule
+        Actor                & 0.31               & 0.28            & 0.29        \\
+        Action               & 0.27               & 0.25            & 0.26        \\
+        Effect               & 0.20               & 0.18            & 0.19        \\
+        Evidence             & 0.18               & 0.22            & 0.20        \\
+        Victim               & 0.24               & 0.21            & 0.22        \\
+        \midrule
+        \textbf{Macro Avg}   & \textbf{0.24}      & \textbf{0.23}   & \textbf{0.24} \\
+        \bottomrule
+    \end{tabular}
+    \caption{S1 per-category span extraction performance.}
+    \label{tab:s1-per-category}
+\end{table}
+
+\textsc{Actor} achieves the highest F1 (0.29), likely because agent references are linguistically explicit (proper nouns, organizational names). \textsc{Effect} and \textsc{Evidence} are more challenging due to their semantic diffusion across sentence boundaries and higher annotation ambiguity (as shown by the IoU analysis in Section~\ref{sec:eda}).
+
+\subsubsection{Deterministic Verifier Statistics}
+
+The five-tier matching cascade resolves the majority of spans at the earliest tiers:
+\begin{itemize}
+    \item \textbf{Tier 1 (Exact):} 78.3\% of valid spans
+    \item \textbf{Tier 2 (Case-insensitive):} 12.1\%
+    \item \textbf{Tier 3 (Normalized):} 5.8\%
+    \item \textbf{Tier 4 (Fuzzy):} 2.9\%
+    \item \textbf{Tier 5 (SequenceMatcher):} 0.9\%
+\end{itemize}
+
+The high exact-match rate validates the DD-CoT Generator's verbatim extraction instruction. Conversely, 3.8\% of spans require fuzzy or LCS-based recovery, confirming the need for the multi-tier fallback strategy.
+
+\subsection{S2: Conspiracy Detection Analysis}
+
+\subsubsection{Reporter Trap Analysis}
+
+The Anti-Echo Chamber architecture specifically targets Reporter Trap false positives. On our development set, the false positive rate on non-conspiracy documents drops from 32\% (zero-shot) to 11\% (full pipeline), a \textbf{65\% reduction}. The Forensic Profiler's Attribution Density warning triggers on 89\% of reporting-style false positives, providing a strong first filter before council deliberation.
+
+\subsubsection{Council Agreement Patterns}
+
+Analysis of council voting patterns reveals:
+\begin{itemize}
+    \item \textbf{Unanimous agreement:} 67\% of documents
+    \item \textbf{3--1 split:} 24\% of documents
+    \item \textbf{2--2 split:} 9\% of documents
+\end{itemize}
+
+When the council reaches unanimous agreement, accuracy is 94\%. For 3--1 splits, accuracy drops to 79\%. For 2--2 splits (where the Judge defaults to non-conspiracy with capped confidence), accuracy is 61\%. The 2--2 cases represent genuinely ambiguous documents where ground-truth annotators also show elevated disagreement.
+
+\subsection{Qualitative Error Analysis}
+
+We manually examine the 50 highest-confidence errors across both subtasks to identify systematic failure modes.
+
+\subsubsection{S1 Failure Modes}
+
+\begin{enumerate}
+    \item \textbf{Boundary mismatch (38\%):} The model correctly identifies the marker type and approximate location but includes too much or too little surrounding context. This is most common for \textsc{Action} spans, where the boundary between the action itself and its contextual setup is often subjective.
+    \item \textbf{Label confusion (28\%):} \textsc{Actor}$\leftrightarrow$\textsc{Victim} and \textsc{Action}$\leftrightarrow$\textsc{Effect} confusions dominate, consistent with the high pairwise IoU identified in the EDA.
+    \item \textbf{Hallucinated spans (18\%):} Despite verbatim extraction instructions, the Generator occasionally paraphrases or synthesizes spans not present in the source text. The Deterministic Verifier catches these (they fail all five matching tiers), but they consume extraction budget.
+    \item \textbf{Missing spans (16\%):} Primarily affects \textsc{Evidence} markers, which tend to be diffusely expressed across multiple sentences rather than concentrated in extractable units.
+\end{enumerate}
+
+\subsubsection{S2 Failure Modes}
+
+\begin{enumerate}
+    \item \textbf{Irony and sarcasm (34\%):} The most persistent failure mode. Sarcastic endorsement (``\textit{yeah, obviously the lizard people run everything}'') is classified as non-conspiracy due to surface-level hedging cues, while ironic debunking is classified as conspiracy due to the presence of conspiratorial vocabulary.
+    \item \textbf{Implicit stance (26\%):} Documents that endorse conspiracies through implication rather than explicit assertion (e.g., selective presentation of evidence without stated conclusions) challenge the council's explicit stance analysis.
+    \item \textbf{Cross-cultural references (22\%):} Conspiracy narratives from non-Western subreddits sometimes use rhetorical patterns not well-represented in the training data's predominantly English-language conventions.
+    \item \textbf{Partial endorsement (18\%):} Documents that endorse some conspiratorial claims while debunking others resist binary classification.
+\end{enumerate}

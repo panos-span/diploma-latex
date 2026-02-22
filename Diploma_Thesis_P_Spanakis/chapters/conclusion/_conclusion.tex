@@ -1,0 +1,76 @@
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+\section{Summary}
+
+This thesis presented an agentic LLM system for SemEval-2026 Task 10 that jointly extracts psycholinguistic conspiracy markers as text spans (Subtask 1) and classifies whether Reddit comments endorse conspiracy theories (Subtask 2). Our core contribution is a workflow-structured approach that decomposes these challenges into specialized agents with complementary responsibilities.
+
+For Subtask 1, we introduced \textbf{Dynamic Discriminative Chain-of-Thought (DD-CoT)} reasoning within a Self-Refine loop, where a Generator proposes labeled marker strings, an Enhanced Critic audits them against five verification criteria, a Refiner applies targeted corrections, and a Deterministic Verifier anchors each string to character-precise offsets. This hybrid architecture explicitly decouples semantic identification from span localization, avoiding the hallucinated span problem that plagues end-to-end LLM-based extraction.
+
+For Subtask 2, we structured classification as adversarial deliberation through the \textbf{Anti-Echo Chamber} architecture, comprising a deterministic Forensic Profiler, a Parallel Council of four specialized personas (Prosecutor, Defense Attorney, Literalist, and Stance Profiler), and a Calibrated Judge with conservative confidence rules. This design specifically targets the Reporter Trap failure mode, where topical discussion of conspiracies is conflated with endorsement.
+
+Both subtasks leverage \textbf{Contrastive Few-shot Retrieval} with cross-encoder reranking, including stratified sampling for marker extraction and hard negative mining for stance discrimination. Prompt templates are optimized using the \textbf{Genetic Evolution Prompt Algorithm (GEPA)}, which applies LLM-guided crossover and reflective mutation to systematically improve prompt effectiveness.
+
+\section{Key Findings}
+
+Our ablation studies revealed several important insights:
+
+\begin{enumerate}
+    \item \textbf{Workflow structure substitutes for model changes.} The agentic pipeline doubled S1 macro F1 (from 0.12 to 0.24) and improved S2 macro F1 by 49\% (from 0.53 to 0.79) over a zero-shot GPT-5.2 baseline, without any model fine-tuning, additional training data, or ensemble of different models. All improvements derive from prompt engineering and workflow design.
+
+    \item \textbf{Deterministic components are critical.} The Deterministic Verifier contributed the single largest S1 improvement ($\Delta F_1 = 0.08$), while the Forensic Profiler reduced S2 false positives by 39\%. These non-LLM components provide structural guarantees that LLMs alone cannot offer.
+
+    \item \textbf{Adversarial deliberation outperforms single-pass classification.} Removing the Council architecture caused the largest S2 accuracy drop ($-0.08$) and more than doubled the false positive rate (from 11\% to 24\%). Independent assessment by complementary personas produces more calibrated decisions than any single classifier.
+
+    \item \textbf{Component interactions are non-additive.} The sum of individual ablation deltas exceeds the total improvement, indicating synergistic effects between retrieval, self-refinement, and council deliberation.
+\end{enumerate}
+
+\section{Limitations}
+
+Despite the significant improvements demonstrated, several limitations constrain the generalizability and applicability of this work:
+
+\begin{itemize}
+    \item \textbf{Hardware constraints and model training.} A significant limitation of the present work is the absence of model fine-tuning or domain-specific training. Due to hardware constraints---specifically, the lack of access to high-performance GPU infrastructure (e.g., NVIDIA A100/H100 clusters)---we were unable to fine-tune the underlying LLMs on the conspiracy detection corpus. Fine-tuning frontier models such as GPT-5.2 or Claude Sonnet 4.5 requires substantial computational resources: even parameter-efficient methods like LoRA or QLoRA demand at minimum 24 GB of VRAM for 7B-parameter models, while full fine-tuning of larger models requires multi-GPU setups. This constraint motivated our exclusive focus on prompt engineering and agentic workflow design as the primary means of performance improvement, and represents a fundamental architectural choice rather than merely a limitation. Nevertheless, domain-specific fine-tuning could plausibly improve extraction quality, particularly for rare marker categories (\textsc{Evidence}, \textsc{Effect}) where the model struggles with nuanced interpretation.
+
+    \item \textbf{Pragmatic phenomena.} Irony and sarcasm remain the most persistent failure mode (34\% of S2 errors). The council's reliance on explicit stance markers makes it vulnerable to pragmatic inversion, where surface-level hedging cues mask genuine endorsement. This is particularly problematic in communities like \textit{r/conspiracy}, where sarcastic adoption of conspiracy terminology is common. The distinction between ironic and sincere conspiratorial language requires understanding of the speaker's communicative intent, which current LLMs handle imperfectly even with council-based deliberation.
+
+    \item \textbf{Implicit stance.} Documents that endorse conspiracies through selective evidence presentation, without explicit assertions, challenge the current architecture's dependence on linguistic stance markers. This ``dog-whistle'' communication pattern---where conspiracy endorsement is signaled through curated information selection rather than explicit claims---accounts for 26\% of S2 errors. Addressing this would require discourse-level modeling of argument structure beyond individual sentence analysis.
+
+    \item \textbf{Computational cost and API dependency.} The full pipeline requires 6 LLM calls per document (Generator + Critic + Refiner + 4 Jurors + Judge), making it significantly slower and more expensive than single-pass classification. At current API pricing, processing the full training corpus costs approximately \$45--60 per complete evaluation pass. Furthermore, the system's reliance on proprietary API endpoints introduces reproducibility concerns: model version updates, rate limiting, and pricing changes can affect both the consistency and accessibility of results. This dependency on commercial APIs is a structural limitation shared by much of the current LLM-based NLP research.
+
+    \item \textbf{Span boundary subjectivity.} Many S1 boundary errors reflect genuine annotation ambiguity rather than model failure. The IoU-based evaluation partially addresses this, but the core challenge of subjective span boundaries remains. Analysis of inter-annotator agreement reveals that boundary divergence is highest for \textsc{Evidence} spans (mean IoU between annotators = 0.61), suggesting that even human annotators disagree on where ``evidence'' begins and ends within a narrative.
+
+    \item \textbf{Cultural and linguistic transferability.} The system's prompt templates and forensic signals are calibrated on predominantly English-language, Western-centric conspiracy discourse from Reddit. Performance on non-Western conspiracy narratives---which may employ different rhetorical conventions, rely on cultural references unfamiliar to the LLM, or use languages with different grammatical structures---remains untested. Conspiracy theories in different cultural contexts may invoke different cognitive biases and narrative structures that our marker ontology does not capture.
+
+    \item \textbf{Annotation corpus size and balance.} The training corpus comprises 3,271 unique documents after deduplication, which is relatively small compared to datasets used in other NLP tasks. The \textit{Can't Tell} category (18.6\% of training data) introduces additional complexity: while we retain these documents for S1 training and exclude them from S2, their handling represents a pragmatic choice that could bias learned patterns.
+\end{itemize}
+
+\section{Future Work}
+
+Several directions could extend the work presented in this thesis:
+
+\begin{enumerate}
+    \item \textbf{Domain-specific fine-tuning.} The most direct extension would be fine-tuning the underlying LLMs on the conspiracy detection corpus. Parameter-efficient fine-tuning methods such as LoRA \cite{hu2022lora} or QLoRA \cite{dettmers2023qlora} could adapt model weights with modest hardware requirements (a single 24 GB GPU). Instruction tuning on the annotated corpus---where each training example pairs a Reddit comment with the expected extraction or classification output---could substantially improve extraction accuracy for rare marker categories. Alternatively, continued pre-training on a broader conspiracy-related corpus could enhance the model's background knowledge of conspiratorial discourse patterns.
+
+    \item \textbf{Sarcasm-aware multi-stage analysis.} Adding an explicit sarcasm detection stage before council deliberation could address the most common S2 failure mode. This could take the form of a dedicated ``Sarcasm Detector'' agent that analyzes pragmatic cues (hyperbole, incongruity, implicit evaluation) and emits structured warnings similar to the Forensic Profiler. Recent advances in irony detection using contrastive learning \cite{liu2024conspemollm} and large-scale sarcasm corpora provide a promising foundation for training such a detector.
+
+    \item \textbf{Adaptive council composition.} Rather than using a fixed four-persona council, dynamically selecting juror personas based on document characteristics (subreddit, topic, linguistic complexity) could improve both efficiency and accuracy. For high-confidence cases (e.g., clearly non-conspiratorial mundane texts), a lightweight two-persona council could suffice, while ambiguous cases could trigger an expanded panel with additional specialized roles (e.g., a ``Cultural Context Expert'' for non-Western subreddits, or a ``Satire Analyst'' for communities known for ironic content).
+
+    \item \textbf{Cross-lingual extension.} Adapting the pipeline to multilingual conspiracy detection would require culturally-adapted forensic signals, language-specific retrieval corpora, and potentially multilingual embedding models for the RAG component. The core agentic architecture should transfer across languages supported by the underlying LLM, but the psycholinguistic marker ontology would need validation against conspiracy theory structures in target cultures. Multilingual LLMs (e.g., GPT-5.2, Claude) already support many languages, making this extension feasible with targeted prompt adaptation.
+
+    \item \textbf{Fine-grained stance classification.} Extending S2 beyond binary classification to a multi-point spectrum (strong endorsement, partial endorsement, neutral discussion, skeptical inquiry, active debunking) would better capture the pragmatic complexity of conspiratorial discourse. This would require re-annotation of the dataset with finer-grained labels, but could leverage the existing council architecture by adding stance-specific personas.
+
+    \item \textbf{Efficiency optimization.} Several techniques could reduce computational costs without sacrificing accuracy: (a) response caching with semantic hashing to avoid re-processing similar documents, (b) early-exit mechanisms that bypass council deliberation for high-confidence cases (e.g., unanimous Forensic Profiler signals), (c) smaller proxy models (e.g., a fine-tuned 7B model) for initial screening with escalation to the full pipeline only for ambiguous cases, and (d) batched inference with prompt multiplexing to amortize API overhead.
+
+    \item \textbf{Temporal analysis.} Conspiracy narratives evolve over time as events unfold and communities adapt their language. Incorporating temporal features---such as tracking how specific conspiracy claims evolve across Reddit submissions, or detecting emerging conspiracy narratives through sudden shifts in marker density---could enable proactive identification rather than post-hoc classification.
+\end{enumerate}
+
+\section{Broader Impact}
+
+To the best of our knowledge, this work constitutes the \textit{first agentic LLM-based method} for psycholinguistic conspiracy marker extraction and detection. Our results demonstrate that carefully structured workflows can achieve substantial performance improvements without model-level changes, suggesting a design paradigm where engineering effort shifts from model training to workflow architecture.
+
+This paradigm has implications beyond conspiracy detection. Any NLP task that requires both semantic reasoning and structural precision---such as legal clause extraction, medical note de-identification, financial risk assessment, or scientific claim verification---could benefit from the hybrid deterministic--LLM approach developed in this thesis. The key insight is that decomposing complex tasks into specialized agents with complementary strengths (LLMs for interpretation, deterministic components for structural guarantees) produces more reliable systems than either approach alone.
+
+The Anti-Echo Chamber architecture addresses a broader challenge in AI-assisted decision making: how to mitigate confirmation bias in automated classification. By enforcing adversarial deliberation with independent, role-constrained agents, our approach provides a template for building more robust and auditable AI systems. The council's voting patterns and confidence scores offer a form of interpretability---practitioners can examine individual persona analyses to understand why a particular classification was made, enabling human oversight that is absent from black-box single-pass classifiers.
+
+From a societal perspective, automated conspiracy detection systems carry inherent risks. False positive classifications could be used to suppress legitimate discourse, while false negatives could allow harmful misinformation to propagate. Our system's conservative design choices---particularly the high-confidence thresholds in the Calibrated Judge and the explicit Reporter Trap mitigation---reflect a deliberate bias toward precision over recall in the classification task, erring on the side of not flagging legitimate discourse. We emphasize that such systems should augment, not replace, human moderation, serving as screening tools that surface content for human review rather than as autonomous arbiters of acceptable speech.

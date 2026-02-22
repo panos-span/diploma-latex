@@ -1,0 +1,32 @@
+\section{Pipeline Components}
+\label{sec:models}
+
+\subsection{Language Model}
+
+All LLM-mediated components (Generator, Critic, Refiner, Council Jurors, Judge) use \textbf{GPT-5.2} (OpenAI, 2025). The model is accessed via the OpenAI API with the following configuration:
+\begin{itemize}
+    \item \textbf{Temperature:} $\tau = 0.6$ for generative components (Generator, Refiner, Council), $\tau = 0.4$ for the Literalist juror (promoting deterministic, conservative reasoning), and $\tau = 0.0$ for the Judge (deterministic aggregation).
+    \item \textbf{Max output tokens:} 16,384 for the Generator (to accommodate DD-CoT chains for long documents), 8,192 for other components.
+    \item \textbf{Reasoning mode:} Disabled. All reasoning is explicitly orchestrated through DD-CoT and council deliberation rather than delegated to model-internal reasoning chains.
+\end{itemize}
+
+\subsection{Agentic Framework: LangGraph}
+
+The agentic workflow is orchestrated using \textbf{LangGraph} \cite{langgraph2024}, which implements the pipeline as a directed graph of computational nodes. Each node encapsulates a single responsibility (generation, critique, refinement, verification, forensic profiling, voting, judging) and communicates with adjacent nodes through typed state objects. Key advantages of LangGraph include:
+\begin{itemize}
+    \item \textbf{Conditional routing:} Nodes that fail validation (e.g., Verifier finding unresolvable spans) trigger fallback paths rather than silent failures.
+    \item \textbf{Parallel execution:} Council jurors execute concurrently, reducing latency compared to sequential deliberation.
+    \item \textbf{State persistence:} The full pipeline state (including intermediate LLM outputs) is serializable for debugging and reproducibility.
+\end{itemize}
+
+\subsection{Structured Output: PydanticAI}
+
+All LLMs interface through \textbf{PydanticAI} \cite{pydanticai2024}, a framework that wraps LLM calls with typed Pydantic schemas for both input and output. This ensures that every LLM response is parsed, validated, and type-checked before propagating to downstream nodes. PydanticAI implements automatic retry with schema error feedback: if the LLM produces output that fails Pydantic validation, the error message is appended to the prompt and the call is retried (up to 3 attempts).
+
+\subsection{Retrieval Infrastructure}
+
+Few-shot examples are stored and retrieved using \textbf{ChromaDB} \cite{chromadb2023}. Documents are embedded using \texttt{all-MiniLM-L6-v2} for initial retrieval, then reranked using \texttt{BAAI/bge-reranker-v2-m3} \cite{bge_m3}. The two-stage retrieve-then-rerank approach balances recall (embedding similarity over the full corpus) with precision (cross-encoder scoring over a candidate shortlist). Over-retrieval factors are set to $3\times$ for S1 and $4\times$ for S2 to ensure sufficient hard-negative candidates survive reranking.
+
+\subsection{Experiment Tracking}
+
+All experiments, prompt versions, and evaluation metrics are tracked using \textbf{MLflow} \cite{mlflow2024}. GEPA's population management leverages MLflow's model registry to version prompt templates and track lineage through crossover and mutation operations.

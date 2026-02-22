@@ -1,0 +1,26 @@
+\chapter{Introduction}
+
+Humans have long exhibited a tendency to endorse conspiracy theories, particularly in contexts of uncertainty, threat, and social upheaval. Such beliefs are created and distributed to support human need for addressing existential or social issues and strengthen their sense of identity and belonging \cite{psychology-of-conspiracy, belief}. Despite their psychological appeal, conspiracies are associated with harmful consequences, limiting trust in well-documented facts and public decisions, while exacerbating political polarization and misinformation patterns \cite{understanding}.
+
+The rise of artificial intelligence inspired the connection of conspiracy identification with natural language, as language constitutes the most fundamental medium for conspiracy articulation and spread. Conspiratorial statements are subtly embedded in language exploiting linguistic strategies to evoke emotions and attribution of agency \cite{miani2022loco, rains2023psycholinguistic}, suggesting that conspiracy identification goes well beyond superficial linguistic cues.
+
+Large Language Models (LLMs) have revolutionized linguistic research, enabling deep pattern identification and discrimination among their numerous abilities. However, LLMs have been found to be significantly prone to cognitive biases \cite{filandrianos-etal-2025-bias} and manipulation via persuasive language \cite{xu-etal-2024-earth}, while they generate and amplify misinformation \cite{chen2024combatingmisinformation}. Going one step further, state-of-the-art LLMs are even able to persuade people to adopt conspiratorial beliefs to a comparable degree as they can mitigate conspiracy dissemination \cite{costello2026largelanguagemodelseffectively}, exposing the double-edged nature of LLMs in the context of factual verification.
+
+The core challenges that conspiratorial discourse poses call for fine-grained data approaches that allow delving into the linguistic mechanisms that characterize conspiratorial utterances in an interpretable way. Nevertheless, prior datasets \cite{shahsavari2020conspiracy, langguth2023coco} frame conspiracy detection as a coarse-grained classification task, abstracting away from the particularities of conspiratorial discourse, thus obscuring how conspiratorial reasoning is formed and expressed in language. To fill this gap, the \textbf{SemEval 2026 Task 10: Psycholinguistic Conspiracy Marker Extraction and Detection} emphasizes the localization and categorization of linguistic markers that signal conspiratorial thinking, complementing detection with psychologically-backed annotations.
+
+To address the dual challenges of accurate detection and interpretable marker extraction, models must be capable of capturing both global conspiratorial intent and fine-grained psycholinguistic cues embedded in language. In our approach, we leverage LLMs within agentic structures to advance the recognition of conspiratorial thought. To the best of our knowledge, we introduce the \textit{first agentic LLM-based method} to combat conspiracy detection and identification of psycholinguistic features in language.
+
+\vspace{\baselineskip}
+
+In this thesis, we:
+
+\begin{itemize}
+    \item Provide theoretical background on Large Language Models, covering their architecture, prompting techniques, agentic workflows, and evaluation paradigms relevant to span extraction and text classification.
+    \item Review related work on conspiracy detection in NLP, including psycholinguistic signal modeling, LLM-based approaches, and the limitations of prior coarse-grained classification frameworks.
+    \item Present the SemEval-2026 Task 10 dataset, including a comprehensive exploratory data analysis of marker distributions, annotation density, span overlap patterns, and subreddit-level variation.
+    \item Introduce our agentic system architecture: a two-stage pipeline comprising DD-CoT Self-Refine for marker extraction (Subtask 1) and an Anti-Echo Chamber parallel council for conspiracy endorsement detection (Subtask 2), supported by contrastive few-shot retrieval and GEPA prompt optimization.
+    \item Present experimental results and ablation studies demonstrating that the agentic pipeline doubles S1 macro F1 and improves S2 macro F1 by 49\% over a zero-shot baseline, with detailed analysis of which architectural components contribute most to the improvement.
+    \item Conclude by discussing the implications of workflow-structured approaches for psycholinguistic NLP, the remaining challenges posed by pragmatic phenomena such as irony and implicit stance, and directions for future work.
+\end{itemize}
+
+A version of this work will also be published as a SemEval-2026 system description paper. The present document expands on those contributions, offering deeper analysis, comprehensive appendices, and a more thorough theoretical context.

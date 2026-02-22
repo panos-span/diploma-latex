@@ -1,0 +1,33 @@
+\begin{table}[H]
+    \renewcommand{\arraystretch}{1.5} % Increase row spacing
+    \centering
+    \begin{tabular}{c m{14.5cm}}
+    % Adjusted column widths
+        \hline
+        \textbf{Strategy} & \textbf{Prompt} \\ 
+        \hline
+        \textbf{ZS} & 
+        Redefine \textbf{\{X\}} as \textbf{\{Y\}}. \textbf{\{question\}} \newline
+        
+        End the response with the phrase "The final answer is: " followed only by the correct result, with no additional text or commentary. \\ 
+        \hline
+        \textbf{CoT} & 
+        Redefine \textbf{\{X\}} as \textbf{\{Y\}}. \textbf{\{question\}} \newline
+
+        Let’s think step by step. \newline
+        
+        End the response with the phrase "The final answer is: " followed only by the correct result, with no additional text or commentary. \\ 
+        \hline
+        \textbf{FS} & 
+        Redefine \textbf{\{X\}} as \textbf{\{Y\}}. \textbf{\{question\}} \newline
+        
+        Here are some examples of similar questions with their correct answers: \newline
+
+        \textbf{\{R\_FF\_EXAMPLES\}} \newline
+        
+        End the response with the phrase "The final answer is: " followed only by the correct result, with no additional text or commentary. \\       
+        \hline
+    \end{tabular}
+    \caption{R prompts for FF format across ZS, CoT and FS prompting strategies.}
+    \label{tab:r-ff}
+\end{table}

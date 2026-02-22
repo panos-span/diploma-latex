@@ -1,0 +1,22 @@
+\begin{table}[H]
+\vskip -0.08in
+\centering
+\small
+\begin{tabular}{p{2.7cm}|p{0.7cm}p{0.6cm}|p{0.7cm}p{0.6cm}|p{0.7cm}p{0.6cm}|p{0.7cm}p{0.6cm}|p{0.7cm}p{0.6cm}|p{0.7cm}p{0.6cm}}
+\hline
+\multirow{3}{*}{Μοντέλο} & \multicolumn{6}{c|}{$R_a3$}                                                               & \multicolumn{6}{c}{$R_s2$}                                                                \\ \cline{2-13}
+                       & \multicolumn{2}{c}{$Q_1$} & \multicolumn{2}{c}{$Q_2$} & \multicolumn{2}{c|}{$Q_3$} & \multicolumn{2}{c}{$Q_1$} & \multicolumn{2}{c}{$Q_2$} & \multicolumn{2}{c}{$Q_3$} \\ \cline{2-13}
+                       & NR           & FF           & NR           & FF           & NR            & FF           & NR           & FF           & NR           & FF           & NR           & FF           \\ \hline
+
+
+Mistral7B & 66.67 & 33.33 & 46.67 & 33.33 & 33.33 & 26.67 & 66.67 & 33.33 & 46.67 & \cellcolor{lightdustypurple}13.33 & 33.33 & \cellcolor{lightdustypurple}26.67 \\ 
+Mixtral8x7B & 100.0 & 33.33 & 66.67 & 26.67 & 66.67 & 20.0 & 100.0 & 26.67 & 66.67 & \cellcolor{lightdustypurple}40.0 & 66.67 & \cellcolor{lightdustypurple}46.67 \\ 
+Mistral Large (123B) & 93.33 & 33.33 & 73.33 & 26.67 & 53.33 & 53.33 & 93.33 & 66.67 & 73.33 & \cellcolor{lightdustypurple}46.67 & 53.33 & \cellcolor{lightdustypurple}73.33 \\  \hline
+Llama8B & 80.0 & 0.0 & 80.0 & 0.0 &  53.33 & \cellcolor{lightdustypurple}13.33 & 80.0 & 20.0 & 80.0 & 26.67 & 53.33 & \cellcolor{lightdustypurple}20.0 \\ 
+Llama70B & 93.33 & 6.67 & 80.0 & 0.0 & 80.0 & \cellcolor{lightdustypurple}13.33 & 93.33 & 33.33 & 80.0 & 13.33 & 80.0 & \cellcolor{lightdustypurple}33.33 \\ 
+Llama405B & 93.33 & 0.0 & 86.67 & 0.0 & 73.33 & \cellcolor{lightdustypurple}26.67 & 93.33 & 26.67 & 86.67 & 6.67 & 73.33 & \cellcolor{lightdustypurple}53.33 \\  \hline
+\end{tabular}
+\vskip -0.01in
+\caption{Ποσοστό των ορθών απαντήσεων χωρίς επαναορισμό (NR) και ποσοστό προσκόλλησης για ερωτήσεις ανοιχτού τύπου επαναορισμού μονάδων μέτρησης (χωρίς παραδείγματα). Τα χρωματισμένα κελιά υποδεικνύουν ποσοστά προσκόλλησης που αυξάνονται με το μέγεθος των ΜΓΜ.}
+\label{tab:anchored_table_NR_gr}
+\end{table}

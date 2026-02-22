@@ -1,0 +1,189 @@
+\setcounter{secnumdepth}{4}
+
+\section{Prompt Engineering}
+\label{sec:prompting}
+
+\subsection{Prompts and Prompt Engineering}
+
+A \textit{prompt} serves as an input consisting of manually predefined instructions or cues provided to Large Language Models (LLMs) in order to guide their outputs on specific tasks \cite{promptreportsystematicsurvey}. The systematic practice of designing, structuring, and formulating these instructions in a specialized way that effectively steers model behavior toward desired responses is referred to as \textit{prompt engineering} \cite{promptreportsystematicsurvey} and, over the past few years, it has emerged as a key technique for enhancing LLM performance across a wide range of tasks and domains \cite{systematicsurveypromptengineering}. The significance of this new approach lies in its core advantage: unlike previous conventional methods such as re-training and fine-tuning, prompt engineering leverages the pre-existing knowledge encoded in the LLM to improve the generated output without altering its internal parameters \cite{surveypromptengineeringmethods}. This allows for flexible adaptation to new tasks while entirely avoiding time- and resource-intensive training procedures, thereby maintaining computational efficiency. However, despite its power, prompt engineering remains inherently brittle. LLMs display high sensitivity to the input prompt, which means that even slight changes in wording, the use of synonyms, capitalization, or spacing can yield substantial shifts in performance \cite{promptreportsystematicsurvey}. The choice of question format appears to deeply influence model behavior as well. For instance, forming "yes or no" or multiple choice questions often results in completely different outputs compared to simple unrestricted generation. In fact, even minor perturbations, like changing the order of the possible options are displayed in the multiple choice format, can affect results \cite{promptreportsystematicsurvey}. All of these highlight an intriguing challenge at the heart of prompting engineering: the careful search for the most appropriate prompt that can unlock this method's full potential and eventually achieve optimal LLM performance under the given task \cite{liu2021pretrainpromptpredictsystematic}.
+
+\subsection{Prompt Templates}
+
+To simplify interactions with LLMs and boost usability across specialized tasks, prompts are usually assembled using \textit{prompt templates} \cite{templates}. Prompt templates are structured input formats that typically function as parameterized instructions, containing one or multiple placeholders for variables that, during experimentation, are being replaced by specific textual--or other--instances to create finalized prompts \cite{promptreportsystematicsurvey}. In this way, the same instruction pattern can be systematically applied to a large volume of data, making it feasible to scale from testing a few examples to running large datasets efficiently.
+
+Consider the task of sentiment analysis of tweets. Figure \ref{fig:template} includes an example of a prompt template that instructs models to classify a tweet as either positive or negative. In this template, \{TWEET\} is the variable placeholder that is replaced with the actual tweet to be analyzed, producing a prompt \textit{instance} which is then fed to the LLM for inference \cite{promptreportsystematicsurvey}.
+
+\begin{figure}[H]
+    \vskip -0.01in
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/template.png}
+    \caption{Prompt template example for the task of tweet sentiment analysis \cite{promptreportsystematicsurvey}.} \label{fig:template}
+    \vskip -0.09in
+\end{figure}
+
+
+
+\subsection{Prompting Techniques}
+
+In the search for the "most efficient prompt" that can optimally extract the desired response for a specific task, several \textit{prompting techniques} have been developed and evolved to improve the ability of Large Language Models to follow instructions and reason successfully.
+
+\subsubsection{Zero-Shot Prompting}
+
+Zero-Shot prompting (Figure \ref{fig:zero}) is the simplest form of prompt engineering, consisting solely of a direct instruction to complete a specific task, without providing additional examples or cues on how to approach it \cite{systematicsurveypromptengineering}. In this setup, the model relies on its embedded knowledge to generate predictions, which often proves sufficient to perform adequately on various downstream tasks, including reading comprehension, translation, or summarization, thanks to its extensive pre-training on vast amounts of data \cite{kojima2023largelanguagemodelszeroshot}. However, the Zero-Shot technique is typically outperformed, especially under more difficult scenarios that require nuanced understanding or complex reasoning (\cite{surveypromptengineeringmethods}; \cite{brown2020languagemodelsfewshotlearners}). Nevertheless, Zero-Shot prompting remains a foundational method, setting a baseline to compare with more advanced strategies.
+
+\subsubsection{One-Shot Prompting}
+
+The One-Shot prompting strategy (Figure \ref{fig:one}) includes a single example of successful performance on a specific instance of the described task, to help the model better understand the task's requirements, expected output format, or preferred reasoning process. This method is considered to be closer to the way more complex tasks are often communicated to humans, where the absence of a worked example usually leads to confusion about how to proceed \cite{brown2020languagemodelsfewshotlearners}.
+
+\subsubsection{Few-Shot Prompting}
+
+Few-Shot prompting (Figure \ref{fig:few}) operates exactly like one-Shot prompting, but instead of one, it provides multiple demonstrations of input-output instances to enhance the model's understanding of the given task \cite{brown2020languagemodelsfewshotlearners}. The presentation of high-quality examples has been shown to improve LLM performance on more complex tasks compared to simple instruction alone \cite{systematicsurveypromptengineering}. However, Few-Shot prompts are inherently challenging to implement in order to be effective. Factors such as the selection, similarity, quantity, and order of exemplars--as well as the format or placement of instructions--can substantially influence model responses \cite{promptreportsystematicsurvey}. For example, varying the order in which the task instances are demonstrated can intriguingly produce accuracy scores that vary from sub-50\% to over 90\% \cite{lu2022fantasticallyorderedpromptsthem}. Therefore, careful decisions throughout the prompt design process are critical to ensuring optimal LLM behavior.
+
+\begin{figure}[H]
+    \vskip -0.01in
+    \centering
+    \subfloat[Example of Zero-Shot technique.]{ % Subfigure 1
+        \includegraphics[width=0.26\linewidth]{images/zero-shot.png}
+        \vspace{0.3cm}
+        \label{fig:zero}
+    }   \hspace{0.3cm}
+    \subfloat[Example of One-Shot technique.]{ % Subfigure 2
+        \includegraphics[width=0.26\linewidth]{images/one-shot.png}
+        \vspace{0.3cm}
+        \label{fig:one}
+    } \hspace{0.3cm}
+    \subfloat[Example of Few-Shot technique.]{ % Subfigure 3
+        \includegraphics[width=0.26\linewidth]{images/few-shot.png}
+        \label{fig:few}
+    }
+    \vskip -0.01in
+    \caption{Comparison between the Zero-Shot, One-Shot and Few-Shot prompting techniques with examples on the English-to-French translation task \cite{brown2020languagemodelsfewshotlearners}.}
+    \label{fig:zero-one-few}
+    \vskip -0.09in
+\end{figure}
+
+\subsubsection{Chain-of-Thought Prompting}
+
+Despite their undeniable potential, Large Language Models often encounter difficulties when challenged with questions that are not directly answerable without intermediate inferences. The Chain-of-Thought (CoT) prompting technique was introduced in order to address this issue by encouraging the model to articulate its thought process through a sequence of immediate outputs, before generating the final answer \cite{systematicsurveypromptengineering}. Experimental results have shown that the employment of these reasoning chains improves LLM performance--often to a remarkable degree--under various non-trivial tasks, including multi-hop question-answering, arithmetic, commonsense and, symbolic reasoning problems (\cite{cotpromptingelicitsreasoning}; \cite{understandingchainofthoughtpromptingempirical}).
+
+\begin{figure}[H]
+    \vskip -0.01in
+    \centering
+    \includegraphics[width=0.6\linewidth]{images/cot.png}
+    \caption{Application of Chain-of-Thought prompting for arithmetic reasoning \cite{cot-figure}.} \label{fig:cot}
+    \vskip -0.09in
+\end{figure}
+
+Chain-of-Thought prompting can be incorporated into both Zero-Shot and One-Shot/Few-Shot scenarios. In the Zero-Shot setting, a simple instruction like ``Let's think step by step.'' is added to the prompt to encourage task decomposition (\cite{kojima2023largelanguagemodelszeroshot}; \cite{automaticchainthoughtprompting}).  In the One-Shot or Few-Shot settings, each demonstration typically consists of a question followed by a manually designed natural language rationale that leads to the final answer \cite{cotpromptingelicitsreasoning}. Automatic Chain-of-Thought (Auto-CoT) \cite{automaticchainthoughtprompting} extends this by using the LLM itself to generate reasoning chains for demonstration examples, removing the need for manual rationale construction while maintaining the performance benefits of step-by-step reasoning.
+
+The effectiveness of CoT prompting has been shown to scale with model size---smaller models often fail to produce coherent reasoning chains, while larger models (above approximately 100B parameters) consistently benefit from the technique \cite{cotpromptingelicitsreasoning}. This observation suggests that CoT activates latent reasoning capabilities that emerge only at sufficient model scale.
+
+\subsubsection{Self-Consistency}
+
+Self-Consistency \cite{wang2023selfconsistency} addresses a fundamental limitation of Chain-of-Thought prompting: the stochastic nature of LLM generation means that a single reasoning chain may follow a suboptimal path. Self-Consistency samples multiple diverse reasoning chains by setting a positive temperature during generation, and then selects the final answer by majority vote over the set of generated answers:
+\begin{equation}
+    \hat{a} = \arg\max_{a} \sum_{i=1}^{n} \mathbf{1}[a_i = a]
+\end{equation}
+where $a_i$ is the answer derived from the $i$-th reasoning chain and $n$ is the total number of sampled chains. This approach is motivated by the intuition that correct answers tend to converge across multiple reasoning paths, while incorrect answers are distributed more randomly. Self-Consistency has demonstrated improvements of 1--23 percentage points across arithmetic, commonsense, and symbolic reasoning benchmarks.
+
+In our system, the council deliberation architecture in S2 can be viewed as a structured variant of Self-Consistency, where multiple independent ``reasoning chains'' (persona-specific analyses) vote on the final classification. However, our approach differs in that each chain is generated by a specialized persona with distinct analytical biases, rather than by sampling from the same prompt at different temperatures.
+
+\subsubsection{Tree-of-Thought}
+
+Tree-of-Thought (ToT) prompting \cite{yao2023tree} generalizes Chain-of-Thought from a linear reasoning chain to a \textit{branching} reasoning structure, where the model explores multiple intermediate reasoning steps and evaluates each candidate step before committing to a path. Formally, ToT decomposes a problem into a sequence of ``thought'' steps, generates multiple candidate thoughts at each step, evaluates them using the LLM itself as a value function, and searches through the resulting tree using breadth-first search (BFS) or depth-first search (DFS):
+\begin{enumerate}
+    \item \textbf{Thought decomposition}: Break the problem into sequential intermediate steps.
+    \item \textbf{Thought generation}: At each step, generate $k$ candidate thoughts (continuations).
+    \item \textbf{State evaluation}: Use the LLM to assess whether each partial solution is promising, impossible, or uncertain.
+    \item \textbf{Search}: Navigate the tree using BFS, DFS, or beam search to find the best complete solution path.
+\end{enumerate}
+
+ToT is particularly effective for problems that require planning, exploration, or lookahead---such as game playing, creative writing, or multi-step mathematical proofs. While our system does not implement full tree search, the Self-Refine loop in S1 (Generator $\to$ Critic $\to$ Refiner) can be viewed as a depth-limited tree search where the Critic evaluates partial solutions and the Refiner generates improved candidates based on structured feedback.
+
+\subsubsection{Algorithm of Thoughts (AoT)}
+
+Algorithm of Thoughts~\cite{sel2024aot} takes a fundamentally different approach from ToT by embedding algorithmic exploration strategies \textit{within} a single LLM query rather than requiring multiple external calls. AoT prompts the LLM to simulate the search process of algorithms like depth-first search (DFS) internally, maintaining an in-context ``search tree'' that it navigates step by step. Key advantages include:
+\begin{itemize}
+    \item \textbf{Reduced query count:} While ToT requires $O(b^d)$ LLM calls (where $b$ is the branching factor and $d$ the depth), AoT achieves comparable or superior performance with 1--2 queries.
+    \item \textbf{Implicit backtracking:} The LLM learns to abandon unpromising branches and backtrack---a capability that emerges from being prompted with algorithmic examples.
+    \item \textbf{Scalability:} By avoiding the combinatorial explosion of external tree search, AoT is practical for real-time applications.
+\end{itemize}
+
+\subsubsection{Graph of Thoughts (GoT)}
+
+Graph of Thoughts~\cite{besta2024got} generalizes the reasoning structure beyond trees to arbitrary \textit{directed acyclic graphs} (DAGs). In GoT, individual LLM thoughts are vertices and dependencies between them are edges, enabling operations that are impossible in linear or tree structures:
+\begin{itemize}
+    \item \textbf{Aggregation:} Multiple independent thoughts can be merged into a single, refined thought (e.g., combining partial solutions from different reasoning paths).
+    \item \textbf{Refinement:} Any thought can be iteratively improved based on evaluation feedback without restarting the entire reasoning chain.
+    \item \textbf{Branching and looping:} Unlike trees, the graph structure allows cycles (bounded iteration) and fan-in operations (combining insights from multiple branches).
+\end{itemize}
+GoT achieves significant improvements over ToT on tasks requiring decomposition and recombination, such as sorting, set operations, and document merging.
+
+\subsubsection{Reverse Exclusion Graph-of-Thought (ReX-GoT)}
+
+ReX-GoT~\cite{zheng2024rexgot} adapts graph-based reasoning specifically for multi-choice tasks through a three-stage reverse exclusion process:
+\begin{enumerate}
+    \item \textbf{Option Exclusion:} Instead of directly selecting the correct answer, the LLM systematically eliminates implausible options with explicit justification for each exclusion.
+    \item \textbf{Error Analysis:} The remaining candidates are subjected to adversarial error analysis, where the LLM attempts to find flaws in the reasoning for each surviving option.
+    \item \textbf{Combination:} Results from exclusion and error analysis are combined in a graph structure to produce the final answer with calibrated confidence.
+\end{enumerate}
+This reverse reasoning strategy is particularly effective for commonsense and dialogue inference tasks, where forward reasoning often introduces confirmation bias.
+
+\subsubsection{Multi-Agent Prompting Techniques}
+
+Beyond single-model prompting strategies, multi-agent prompting techniques leverage interactions between multiple LLM instances to improve output quality:
+
+\paragraph*{Debate.} Du et al.~\cite{du2023debating} propose a framework where multiple LLM instances engage in iterative debate, each generating responses and then revising their answers after reading others' arguments. Through multiple rounds of debate, models converge toward more factually accurate and logically consistent answers. The key insight is that exposure to alternative perspectives forces each model to critically examine its own reasoning, reducing hallucinations and improving factual accuracy by 20--30\% on benchmarks like TruthfulQA.
+
+\paragraph*{Persona Fitting and Role-Play.} Assigning distinct personas or expert roles to LLM instances elicits specialized reasoning behaviors. Each persona receives a tailored system prompt that defines its expertise, evaluation criteria, and argumentative stance. Our Anti-Echo Chamber council (Section~\ref{sec:system-overview}) is a direct application of persona fitting: the Prosecutor, Defense Attorney, Literalist, and Stance Analyst each bring genuinely different analytical frameworks to the conspiracy detection task, ensuring systematic evaluation of both confirming and disconfirming evidence.
+
+\vspace{0.5em}
+\noindent\textit{In our experiments, we explored all of the prompting techniques discussed in this section during the development trajectory (Section~\ref{sec:dev-trajectory}), including CoT variants, multi-agent debate, and persona-based reasoning. Through systematic evaluation, we selected the Dynamic Discriminative Chain-of-Thought (DD-CoT) approach combined with the Anti-Echo Chamber council as the most effective combination for psycholinguistic marker extraction and conspiracy detection.}
+
+\subsection{Prompt Formatting: XML vs. Markdown}
+\label{sec:prompt-format}
+
+Beyond the content of a prompt, its \textit{structural format} significantly impacts model performance. Different LLM providers exhibit distinct preferences for how instructions are organized:
+
+\subsubsection{XML-Structured Prompts}
+
+XML tags provide explicit semantic boundaries that help models parse hierarchical instructions. This format is particularly effective for Anthropic's Claude models, which are specifically trained on XML-formatted instructions:
+\begin{lstlisting}[language=XML, caption=XML prompt structure (Claude-optimized)]
+<system_directive>
+  <role>You are a Forensic Narrative Analyst.</role>
+  <extraction_ontology>
+    <category name="Actor">The Agent of Change</category>
+    <category name="Action">The Mechanism</category>
+  </extraction_ontology>
+  <segmentation_rules>
+    <rule type="verbatim">STRICT VERBATIM</rule>
+  </segmentation_rules>
+</system_directive>
+\end{lstlisting}
+
+The advantages of XML formatting include unambiguous section delineation, nested structure for complex taxonomies, and explicit closing tags that prevent instruction bleed between sections. This design choice is motivated by three converging lines of evidence:
+
+\paragraph{Structured Boundary Enforcement.} LLM-integrated applications are vulnerable to \textit{indirect prompt injection}, where the boundary between instructions and data is blurred \cite{greshake2023indirect}. In our pipeline, user-submitted Reddit text is injected into prompts alongside complex multi-section instructions. XML tags create unambiguous structural delimiters that prevent the model from confusing document content with system directives, a critical concern when processing adversarial or conspiratorial text.
+
+\paragraph{Hierarchical Parsing.} Recent work formalizes XML prompting as grammar-constrained interaction, demonstrating that tree-structured prompts enable LLMs to parse complex multi-part instructions more reliably than flat text \cite{alpay2025xmlprompting, sambaraju2025xmlstructured}. Both Anthropic \cite{anthropic2024xml} and OpenAI \cite{openai2024prompting} explicitly recommend XML tags for structuring complex prompts, noting improved accuracy and reduced misinterpretation.
+
+\subsubsection{Markdown-Structured Prompts}
+
+Markdown formatting uses headers, bullet points, and emphasis to organize instructions. This format is preferred by OpenAI's GPT models:
+\begin{lstlisting}[caption=Markdown prompt structure (GPT-optimized)]
+# ROLE
+You are the **PROSECUTOR**.
+
+## PRIMARY OBJECTIVE
+### MAXIMIZE RECALL
+
+## INDICTMENT CRITERIA
+### 1. INSTITUTIONAL CAPTURE RULE (CRITICAL)
+If an institution is framed as:
+- Working against the people
+- Controlled by hidden interests
+-> **CONSPIRACY**
+\end{lstlisting}
+
+Markdown is more human-readable and compact, but lacks the strict boundary enforcement of XML tags. The choice between formats represents a practical consideration in prompt engineering: maintaining dual-format prompts enables model-agnostic deployment, as demonstrated in our system's migration from Claude to GPT (Section~\ref{sec:implementation-detail}).
+

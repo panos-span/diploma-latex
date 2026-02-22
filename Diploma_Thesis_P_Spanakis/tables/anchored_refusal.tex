@@ -1,0 +1,22 @@
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{l|p{0.7cm}p{0.7cm}|p{0.7cm}p{0.7cm}|p{0.7cm}p{0.7cm}|p{0.8cm}p{0.7cm}|p{0.7cm}p{0.7cm}|p{0.7cm}p{0.6cm}}
+\hline
+\multirow{3}{*}{Model} & \multicolumn{6}{c|}{$R_a3$}                                                               & \multicolumn{6}{c}{$R_s2$}                                                                \\ \cline{2-13}
+                       & \multicolumn{2}{c}{$Q_1$} & \multicolumn{2}{c}{$Q_2$} & \multicolumn{2}{c|}{$Q_3$} & \multicolumn{2}{c}{$Q_1$} & \multicolumn{2}{c}{$Q_2$} & \multicolumn{2}{c}{$Q_3$} \\ \cline{2-13}
+                       & FF           & MC           & FF           & MC           & FF            & MC           & FF           & MC           & FF           & MC           & FF           & MC           \\ \hline
+Mistral7B & 33.33 & \textbf{50.0} & \textbf{33.33} & \textbf{28.57} & 28.57 & 40.0 & 45.45 & 53.33 & 14.28 & 35.71 & 26.67 & 23.08 \\ 
+Mixtral8x7B & \textbf{38.46}& 33.33 & 26.67 & 26.67 & 23.08 & 35.71 & 36.37 & 46.67 & 46.15 & \textbf{53.33} & 46.67 & \textbf{73.33} \\ 
+Mistral Large & 33.33 & 20.0 & 26.67 & 26.67 & \textbf{57.14} & \textbf{66.67} & \textbf{71.43} & \textbf{53.33} & \textbf{50.0} & 40.0 & \textbf{73.33} & 66.67 \\  \hline
+Llama8B & 0.0 & \textbf{44.45} & 0.0 & \textbf{36.37} & 22.22 & 50.0 &\textbf{50.0} & 24.99 & \textbf{40.0} & \textbf{50.0 }& 27.27 & 30.0 \\ 
+Llama70B & \textbf{7.15} & 13.33 & 0.0 & 0.0 & 20.0 & 40.0 & 33.33 & 46.67 & 14.28 & 46.67 & 35.71 & 73.33 \\ 
+Llama405B & 0.0 & 0.0 & 0.0 & 13.33 & \textbf{26.67} & \textbf{53.33} & 26.67 & \textbf{46.67} & 6.67 & 20.0 & \textbf{57.14} & \textbf{93.33} \\  \hline
+Command text & 13.33  & 20.0  & 6.67 & 6.67 & 6.67 & 26.67 & 40.0 & 26.67  & 13.33 & 26.67 & 13.33 & 38.46 \\  \hline
+Claude v2 & 28.57  & 13.33  & 20.0 & 0.0 & 50.0  & 42.86 & 14.28 & 40.0 & 33.33  & 21.43 & 46.15 & 66.67 \\ 
+\hline
+\end{tabular}
+
+\caption{The percentage of anchored responses for the models in the ZS setup for the most difficult constants redefinitions in \textit{assignment} ($R_a3$) and \textit{swapping} ($R_s2$). The highest number for each model family is presented in \textbf{bold}. We exclude models where no refusals occurred, as their results are identical to those in Table \ref{tab:anchored_table}.}
+\label{tab:anchored_rate_refusal}
+\end{table}

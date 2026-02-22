@@ -1,0 +1,219 @@
+\section{Results on units redefinition}
+
+We present and further analyze the corresponding results for the task of unit of measurement redefinition. This section aims to investigate behavioral tendencies such as anchoring to predefined values and refusal to answer. At the same time, it evaluates how factors like knowledgeability, reasoning skills, parameter scale, but also prompting techniques, response formats, and levels of difficulty influence the way LLMs react to the alteration of familiar relationships between widely used units of measurement. We also compare these findings to the ones previously discussed in the scientific constant redefinition case.
+
+\subsection{Anchoring to default values}
+\label{sec:anchoring-units}
+
+The clear presence of anchoring behavior is once again undeniable under this new redefinition task. All queried models generate responses in which, to varying degrees, they disregard the altered premise and instead adhere to their familiar priors. Detailed results of the Anchored Responses percentages for the two more extreme redefinition types across both response formats and under the Zero-Shot prompting setup are displayed in Table \ref{tab:anchored_table_units}.  
+
+\input{tables/res_ff_mc}
+
+Evidently, several models exhibit elevated anchoring rates across these experimental combinations. Among others, Llama 70B reaches a 62.5\% score in the hardest scenario of Multiple-Choice-structured questions, and an only slightly lower rate of 56.25\% in the second more complex redefinition level. Anchoring rates of 56.25\% are also recorded for both Mistral 7B and Mistral large under the same conditions. Notably, Mistral and Titan models exhibit persistently substantial anchoring behavior even at easier question levels. However, it appears that unit of measure anchoring results are overall significantly lower in comparison to those of the constant case. In fact, LLMs from the Command and Claude families even achieve several 0\% scores, especially in the Free-Form question setup and the first two difficulty levels.
+
+A familiar trend reappears in the correlation metrics between performance accuracy in the No Redefinition task and anchoring rates across the various types of unit of measurement reassignments, as demonstrated in Table \ref{tab:correlation_zs-units} for the Zero-Shot case. Weaker correlations are observed throughout the easier $Q_1$ and $Q_2$ questions, in contrast to the hardest $Q_3$ level, where the values noticeably increase. This indicates that potent reasoners that successfully solve the most challenging tasks involving predefined unit relationships are also more likely to adhere to their entrenched knowledge when faced with conflicting instructions. 
+
+\input{tables/correlation_units}
+
+Interestingly, a more apparent distinction occurs between the two response formats. Correlation results are substantially weaker--and more often negligible--in the Free-Form question-answering setup across all escalating levels. This suggests that, when generation is unrestricted, reasoning capacity plays a less important role in anchoring tendencies under the unit of measure redefinition task.
+
+\vspace{\baselineskip}
+\subsection{Inverse Trends}
+
+Table \ref{tab:anchored_table_NR_units} reports the percentages of Anchored Responses in relation to the corresponding pre-redefinition performance accuracies for the $R_a$2 and $R_a$3 scenarios and under the Zero-Shot/Free-Form setup. Inverse scaling patterns seem to emerge in several cases under the unit redefinition task. For example, within the Titan model family, Titan lite, express, and Large produce 6.25\%, 18.75\%, and 31.25\% anchoring rates in the $Q_1$ level of $R_a$2 unit reassignments, and 25\%, 31.25\%, and 37.5\% in the $Q_2$ level of $R_a$3 redefinitions, respectively. In addition, Mistral 8x7B surpasses Mistral 7B in anchoring with a percentage of 31.25\% over 25\% in the first level of question difficulty and over 18.75\% in the second, while Llama 405B also experiences a higher rate (25\%) than its smaller counterpart, Llama 70B (12.5\%), in the more complex redefinition scenario, generating Anchored Responses twice as many times.  
+
+
+
+\input{tables/anchored_NR_units}
+\vspace{\baselineskip}
+Notably, inverse scaling trends also appear under the Multiple Choice response format. For instance, as visualized in Figure \ref{fig:mistral_all-units}, Mistral Large tends to produce more Anchored responses compared to its smaller counterpart, Mistral 7B, when faced with unit of measure redefinitions, despite significantly outperforming it in the baseline NR experiments. This reinforces the broader theme that increases in model size and stronger reasoning capabilities in standard conditions do not straightforwardly predict improvements under input perturbations, such as redefinitions, as well.
+\vspace{\baselineskip}
+\begin{figure}[H]
+\begin{subfigure}{\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/mistral7b_stacked_bars-units.png}
+        \caption{Response breakdown for Mistral7B before and after units of measure redefinitions.}
+        \label{fig:mistral7b_MC-units}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/mistral_large_stacked_bars-units.png}
+        \caption{Response breakdown for Mistral Large before and after units of measure redefinitions.}
+        \label{fig:mistral_large_MC-units}
+    \end{subfigure}
+    \caption{Comparison of Mistral7B and Mistral Large (123B)  responses on the MC response format for units of measure redefinitions.}
+    \label{fig:mistral_all-units}
+\end{figure}
+
+This inverse phenomenon may be less prominent under the current conditions, compared to the previously studied constants case, but it remains present nonetheless. Larger models do not produce as drastically increased anchoring rates, but they do not seem to "fix" the problem either, even though they demonstrate stronger reasoning capabilities, as evidenced by the results of the No Redefinition task. In any case, unit of measure redefinition still qualifies as an inverse scaling task.
+
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\subsection{Response Format}
+
+Once again, it is evident that the Multiple Choice response format is associated with significantly higher susceptibility to anchoring in contrast to the Free-Form one. This phenomenon is most clearly accentuated in Figure \ref{fig:size_comparison_units}, which showcases all different types of responses to the redefinition query across the Free-Form and Multiple Choice setup, for Mistral and Llama models of various parameter sizes. While Anchored Responses rates are relatively low in the Free-Form case, they drastically escalate in the Multiple Choice format, sometimes experiencing an over 100\% increase. Llama 70B, in particular, interestingly generates rates of 12.5\% and 62.5\% in FF and MC format, indicating a sharp 400\% increase in anchoring behavior when shifting from answering freely to choosing between possible options. This event is a consequence of exposing the model to the default unit/counterpart relationship within the given answers, which creates a strong conflict between instruction and memorization. 
+\vspace{\baselineskip}
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.6\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/mistral-anchored-units.png}
+         \vskip -0.01in
+        \caption{Response breakdown for Mistral models.}
+        \label{fig:mistral}
+    \end{subfigure}
+    \vskip 0.2in
+    \begin{subfigure}{0.6\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/llama-anchored-units.png}
+        \vskip -0.01in
+        \caption{Response breakdown for Llama models.}
+        \label{fig:llama}
+    \end{subfigure}
+    \vskip -0.01in
+    \caption{Results for the different Mistral and Llama models on $Q_3$ questions using ZS prompting. The order of the bars per redefinition type/level corresponds to increasing model size.}
+    \label{fig:size_comparison_units}
+\end{figure}
+
+%\subsection{Levels of Difficulty}
+
+%\subsubsection{Question Difficulty}
+
+
+
+
+
+%\begin{figure}[H]
+%\begin{subfigure}{\textwidth}
+%        \centering
+         %\includegraphics[width=0.86\linewidth]{images/llama8b_stacked_bars-units.png}
+        %\caption{Response breakdown for Llama8B before and after units of measure redefinitions.}
+        %\label{fig:llama8b_MC-units}
+   % \end{subfigure}
+    
+    %\begin{subfigure}{\textwidth}
+     %   \centering
+        %\includegraphics[width=0.86\linewidth]{images/llama405_stacked_bars-units.png}
+        %\caption{Response breakdown for Llama405B before and after units of measure redefinitions.}
+        %\label{fig:llama405b_large_MC-units}
+    %\end{subfigure}
+    %\caption{Comparison of Llama8B and Llama405B  responses on the MC response format for units of measure redefinitions.}
+    %\label{fig:llama_all-units}
+%\end{figure}
+
+%\subsubsection{Redefinition Difficulty}
+
+\subsection{The influence of prompting}
+
+Tables \ref{tab:correlation_fs-units} and \ref{tab:correlation_cot-units} demonstrate the correlations between No redefinition accuracies and post-redefinition anchoring percentages for the Few-Shot and Chain-of-Thought prompting strategies, respectively. We compare these results to the corresponding ones presented in Table \ref{tab:correlation_zs-units} of section \ref{sec:anchoring-units} in order to determine how the employment of different prompting techniques can affect--and potentially mitigate--the anchoring phenomenon.
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+\input{tables/correlation_fs_units}
+\vspace{\baselineskip}
+\input{tables/correlation_cot_units}
+\vspace{\baselineskip}
+A clear pattern mirrors the Zero-Shot correlation case in the Few-Shot prompting setup. Higher correlation values are observed in the most difficult level of questions, while correlations remain weak in the easier cases, particularly in the Free-Form question-answering format. However, a stark departure occurs in the results of Chain-of-Thought conducted experiments: the CoT technique achieves a significant reduction in anchoring, especially among more potent LLM reasoners, across all levels of question and assignment difficulty. Even for $Q_3$-level questions, where stronger correlations generally arise, the calculated results are almost entirely negative in this case. Thus, task decomposition and reasoning chains of intermediate steps--even though ineffective for constants--seem to become beneficial methods for guiding models to reason beyond strongly memorized conceptual mappings in the unit of measurement redefinition task.
+
+
+\subsection{Completely Wrong Responses Analysis}
+
+\subsubsection{Refusal to respond}
+
+In Section \ref{sec:refusal} we thoroughly examined the Refusal-to-Respond phenomenon, where the models explicitly refrain from attempting a solution to the instructed redefinition problem, because of its persistent presence in the responses of the majority of the queried LLMs across all different experimental combinations in the constant redefinition task. However, in striking contrast to the constants case, similar behavior is almost entirely absent under these new conditions, where the redefinitions concern relationships between units of measure. More specifically, Refusal-to-Answer response rates are entirely zero across all LLMs tested, with the exception of the three models within the Mistral family, which once again proves that this is a model family-specific tendency. Some particular outputs, for example, that these models generated when exhibiting this type of behavior are: "The question cannot be answered meaningfully with the redefined unit of time.", "This question is designed to be impossible to answer.", "The question is not valid." or "I am an assistant and may not have the ability to redefine units.". Even these instances, though, which will be further investigated in the following section, are mostly isolated throughout different scenarios. 
+\vspace{\baselineskip}
+
+
+
+The only difference between the two redefinition tasks explored in this work lies in the distinct knowledge domains of the entities being redefined. Therefore, the sharp discrepancy in the frequency of refusal under otherwise similar experimental conditions points to a deeper distinction in the way that LLMs internalize the knowledge behind each cognitive topic. 
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+\newpage
+\subsubsection{Case studies on Refusal and Overconfidence}
+
+We analyze the outputs of the models within the Mistral family, which uniquely displayed refusal behavior. Figures \ref{fig:mistral7b-refusal}, \ref{fig:mixtral-refusal}, and \ref{fig:mistral_large-refusal} provide a detailed presentation of Completely Wrong Responses for Mistral 7B, Mixtral 8x7B, and Mistral Large, respectively.
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+\textbf{Mistral 7B}
+
+In the case of Mistral 7B, refusal responses are highly infrequent and appear only within the Free-Form format results. Nearly all the completely wrong outputs in this setup fall under the category of "Actually Wrong
+Results". On the other hand, in the Multiple Choice case, while refusal rates are entirely zero, there is a drastic increase of Blank Response occurrences, particularly at the $Q_1$ level. This suggests that, while unconstrained generation leads to a false sense of certainty, when operating under the MC format, this model seems to suffer from indecision, as it is forced to select among conflicting possible answers.
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+\vspace{\baselineskip}
+
+\begin{figure}[H]
+\begin{subfigure}{\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/mistral7b_ff.png}
+         \vskip -0.01in
+    \caption{Response breakdown for Mistral 7B FF responses.}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/mistral7b_mc.png}
+        \vskip -0.01in
+        \caption{Response breakdown for Mistral 7B MC responses.}
+    \end{subfigure}
+    \vskip -0.01in
+    \caption{Completely wrong responses breakdown for Mistral 7B. 
+\textcolor{dustyblue}{Blue} denotes actually wrong responses,
+\textcolor{dustypurple}{Purple} indicates refusals, while \textcolor{dustygray}{Gray} instances correspond to blank responses}.
+    \label{fig:mistral7b-refusal}
+\end{figure}
+
+\textbf{Mixtral 8x7B}
+
+Cases of refusal behavior in the Mixtral 8x7B model are, once again, extremely isolated--this time occurring in both Free-Form and Multiple Choice settings. Interestingly, in contrast to its smaller counterpart, Blank answers are almost entirely absent across all different conditions. This implies that Mixtral 8x7B reveals a heightened level of overconfidence in responding, regardless of the question-answering format.
+
+\begin{figure}[H]
+\begin{subfigure}{\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/mixtral_ff.png}
+         \vskip -0.01in
+    \caption{Response breakdown for Mixtral 8x7B FF responses.}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/mixtral_mc.png}
+        \vskip -0.01in
+        \caption{Response breakdown for Mixtral 8x7B MC responses.}
+    \end{subfigure}
+    \vskip -0.01in
+    \caption{Completely wrong responses breakdown for Mixtral 8x7B. 
+\textcolor{dustyblue}{Blue} denotes actually wrong responses,
+\textcolor{dustypurple}{Purple} indicates refusals, while \textcolor{dustygray}{Gray} instances correspond to blank responses}.
+    \label{fig:mixtral-refusal}
+\end{figure}
+
+\textbf{Mistral Large}
+
+Mistral Large is the model that refuses to answer the most under the unit of measurement redefinition task. This is rather intriguing because, in the constants case, we observed that an increase in parameter size meaningfully reduces Refusal to Answer percentages. In this case, however, the largest model within the LLM family exhibits substantially high refusal rates in both response formats and especially under the most extreme assignment type scenario. 
+
+\begin{figure}[H]
+\begin{subfigure}{\textwidth}
+        \centering
+         \includegraphics[width=1\linewidth]{images/mistral_large_ff.png}
+         \vskip -0.01in
+    \caption{Response breakdown for Mixtral Large FF responses.}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{images/mistral_large_mc.png}
+        \vskip -0.01in
+        \caption{Response breakdown for Mistral Large MC responses.}
+    \end{subfigure}
+    \vskip -0.01in
+    \caption{Completely wrong responses breakdown for Mistral Large. 
+\textcolor{dustyblue}{Blue} denotes actually wrong responses,
+\textcolor{dustypurple}{Purple} indicates refusals, while \textcolor{dustygray}{Gray} instances correspond to blank responses}.
+    \label{fig:mistral_large-refusal}
+\end{figure}

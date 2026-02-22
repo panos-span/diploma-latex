@@ -1,0 +1,53 @@
+\begin{table}[H]
+    \renewcommand{\arraystretch}{1.5} % Increase row spacing
+    \centering
+    \begin{tabular}{m{1cm} m{15cm}} % Adjusted column widths
+        \hline
+        \textbf{Mode} & \textbf{Prompt} \\ 
+        \hline
+        \textbf{ZS} & 
+        Redefine \textbf{\{X\}} as \textbf{\{Y\}}. Choose A, B, C or D to answer the question: \newline
+        
+        Question: \textbf{\{question\}} \newline
+        A: \textbf{\{A\}} \newline
+        B: \textbf{\{B\}} \newline
+        C: \textbf{\{C\}} \newline
+        D: \textbf{\{D\}} \newline
+        
+        Provide only the letter corresponding to the correct answer: "A", "B", "C", or "D".
+        End the response with the phrase "The final answer is: " followed by the correct letter, with no additional text or commentary. \\
+        \hline
+        \textbf{CoT} & 
+        Redefine \textbf{\{X\}} as \textbf{\{Y\}}. Choose A, B, C or D to answer the question: \newline
+        
+        Question: \textbf{\{question\}} \newline
+        A: \textbf{\{A\}} \newline
+        B: \textbf{\{B\}} \newline
+        C: \textbf{\{C\}} \newline
+        D: \textbf{\{D\}} \newline
+
+        Let’s think step by step. \newline
+        
+        Provide only the letter corresponding to the correct answer: "A", "B", "C", or "D".
+        End the response with the phrase "The final answer is: " followed by the correct letter, with no additional text or commentary. \\
+        \hline
+        \textbf{FS} & 
+        Redefine \textbf{\{X\}} as \textbf{\{Y\}}. Choose A, B, C or D to answer the question: \newline
+        
+        Question: \textbf{\{question\}} \newline
+        A: \textbf{\{A\}} \newline
+        B: \textbf{\{B\}} \newline
+        C: \textbf{\{C\}} \newline
+        D: \textbf{\{D\}} \newline
+
+        Here are some examples of similar questions with their correct answers: \newline
+        
+        \textbf{\{R\_MC\_EXAMPLES\}} \newline
+
+        Provide only the letter corresponding to the correct answer: "A", "B", "C", or "D".
+        End the response with the phrase "The final answer is: " followed by the correct letter, with no additional text or commentary. \\        
+        \hline
+    \end{tabular}
+    \caption{R prompts for MC format across ZS, CoT and FS prompting strategies.}
+    \label{tab:r-mc}
+\end{table}

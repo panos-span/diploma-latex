@@ -1,0 +1,353 @@
+\section{Prompt Design and Optimization}
+\label{sec:prompts-methodology}
+
+\subsection{XML-Structured Prompting}
+
+All system and user prompts in our pipeline are formatted using \textbf{XML-structured markup}, where hierarchical tags delineate prompt sections (role definitions, extraction ontologies, output schemas, execution protocols). This design choice is motivated by three considerations:
+
+\paragraph{Structured Boundary Enforcement.}
+LLM-integrated applications are vulnerable to \textit{indirect prompt injection}, where the boundary between instructions and data is blurred \cite{greshake2023indirect}. In our pipeline, user-submitted Reddit text is injected into prompts alongside complex multi-section instructions. XML tags (e.g., \texttt{<source\_document>}, \texttt{<extraction\_ontology>}, \texttt{<output\_format>}) create unambiguous structural delimiters that prevent the model from confusing document content with system directives.
+
+\paragraph{Hierarchical Parsing.}
+Recent work formalizes XML prompting as grammar-constrained interaction, demonstrating that tree-structured prompts enable LLMs to parse complex multi-part instructions more reliably than flat text \cite{alpay2025xmlprompting, sambaraju2025xmlstructured}. Our prompts nest up to three levels deep, mirroring the compositional structure of the task itself. Both Anthropic \cite{anthropic2024xml} and OpenAI \cite{openai2024prompting} explicitly recommend XML tags for structuring complex prompts.
+
+\subsection{S1 Prompt Architecture}
+
+The S1 pipeline uses three distinct prompts:
+
+\paragraph{DD-CoT Generator.} The generator prompt establishes the ``Conspiracy-Marker Extractor'' persona with a five-step pipeline: (1)~a \textbf{Neutrality Gate} that filters negative examples before extraction, (2)~an \textbf{Assertion vs.\ Discussion} check distinguishing endorsed claims from reported ones, (3)~\textbf{Dominant Narrative} classification, (4)~the \textbf{Triangle of Malice} extraction ontology (Actor, Action, Effect, Victim, Evidence) with positive and negative examples for each category, and (5)~\textbf{Span Rules} enforcing verbatim extraction and hallucination prevention.
+
+\paragraph{Forensic QA Critic.} The Critic audits generator output through a five-check pipeline. Its most critical innovation is the \textbf{Negative-Example Gating} check: before auditing span quality, the Critic first verifies whether the source text contains \emph{any} conspiracy markers at all, ordering wholesale span deletion for negative examples. Subsequent checks address \textbf{Frame Leakage} (attribution prefixes bleeding into spans), \textbf{Span Bloat} (action spans exceeding verb + direct object), \textbf{Reporter Trap} label accuracy, and \textbf{Lazy Verb} detection.
+
+\paragraph{DD-CoT Refiner.} The Refiner executes Critic change orders with surgical precision through five protocols: \textbf{Trim} (bloat fix), \textbf{Strip Frames} (remove attribution prefixes), \textbf{Label Correction}, \textbf{Add Missed Spans}, and \textbf{Prune Hallucinations}. A critical design constraint is the \textbf{Decision Rule}: the Refiner may only add new spans if the Critic explicitly listed them in \texttt{missed\_spans}.
+
+\subsection{S2 Prompt Architecture}
+
+\paragraph{Council Juror Prompts.} Each juror receives a shared \textbf{case file} containing the source text, subreddit context, forensic signals, S1 marker summary, retrieval-selected few-shot legal precedents, and voting instructions. The case file implements a context-aware \textbf{Standard of Proof}: subreddits like \texttt{r/conspiracy} trigger a presumption of guilt, while mainstream sources like \texttt{r/news} trigger a presumption of innocence.
+
+The four juror system prompts encode complementary adjudication perspectives. All share a common \textbf{Structural Assertion Rule}: statements asserting the existence of a conspiracy as fact constitute \textbf{Endorsement by Assertion}, regardless of passive voice or formal tone.
+
+\paragraph{Calibrated Judge.} The Judge prompt implements calibrated adjudication as the final arbiter. Key elements include: a \textbf{Standard of Proof} based on structural endorsement of malice (not mere discussion), a \textbf{Forensic Priors Checklist} for interpreting quantitative signals, \textbf{Council Synthesis Rules} requiring rationale-level analysis rather than vote counting, and an \textbf{Appeal Override} mechanism for mandatory adversarial review cases.
+
+\subsection{GEPA Prompt Optimization}
+\label{sec:gepa-details}
+
+Prompt templates were optimized with GEPA (Genetic Evolution Prompt Algorithm) \cite{agrawal2025gepa}, an evolutionary meta-optimization framework that treats prompt engineering as a search problem over the space of natural language instructions.
+
+\subsubsection{Population Management}
+
+The evolutionary process begins with a seed population of $N = 20$--$30$ prompt variants registered as versioned artifacts in MLflow's prompt registry \cite{mlflow2024}. The initial population consists of manual baselines (hand-crafted prompts from domain experts), synthetic perturbations (rule-based variations), and historical best performers from prior optimization runs.
+
+The population evolves over $G = 40$--$80$ generations, with each generation consisting of: fitness evaluation, selection of top-$k$ parents, crossover and mutation to generate offspring, and replacement of bottom performers.
+
+\subsubsection{Selection and Crossover}
+
+GEPA employs \textbf{tournament selection} with tournament size $k_{\text{tour}} = 3$ to balance exploitation and exploration. Unlike classical genetic algorithms, GEPA uses \textbf{LLM-guided semantic crossover} to merge two parent prompts: the crossover model performs a semantic diff-merge, extracting high-level strategic elements rather than performing character-level splicing.
+
+\subsubsection{Reflective LLM Mutation}
+
+GEPA's key innovation is \textbf{reflective LLM mutation}, which replaces random perturbation with targeted, feedback-driven edits. The reflector LLM receives the current prompt, its fitness score, and aggregated error feedback from recent evaluation rounds, then proposes a single targeted edit with justification. Mutation rate is $p_m = 0.2$, and mutations are accepted only if $F_{\text{mutant}} > F_{\text{parent}} - \delta$ where $\delta = 0.01$.
+
+\subsubsection{Fitness Evaluation}
+
+\paragraph{S1 Scorer.} The scorer computes macro $F_\beta$ with $\beta = 2$, prioritizing recall. It generates structured, hierarchical feedback covering successes, label errors, boundary issues, missing spans, and hallucinations.
+
+\paragraph{S2 Scorer.} Rather than binary accuracy, the S2 scorer implements a \textbf{gradient consensus} metric based on council vote ratios:
+$$F_{\text{gradient}} = \begin{cases}
+        1.0                                         & \text{if } \hat{y} = y    \\
+        \frac{N_{\text{correct}}}{N_{\text{total}}} & \text{if } \hat{y} \neq y
+    \end{cases}$$
+This provides a smoother fitness landscape than binary accuracy, encouraging per-juror reasoning improvements.
+
+\subsubsection{Hyperparameter Configuration}
+
+Table~\ref{tab:gepa-config} summarizes the hyperparameters used in our optimization runs.
+
+\begin{table}[h!]
+    \centering
+    \small
+    \begin{tabular}{@{}lll@{}}
+        \toprule
+        \textbf{Parameter}         & \textbf{Value}     & \textbf{Description}                \\
+        \midrule
+        Population size            & 20--30             & Number of prompt candidates         \\
+        Max generations            & 40--80             & Budget (max\_metric\_calls)         \\
+        Tournament size            & 3                  & Selection pressure                  \\
+        Mutation rate              & 0.2                & Probability of mutating survivors   \\
+        Crossover model            & GPT-5.2            & LLM for semantic merging            \\
+        Reflector model            & GPT-5.2            & LLM for mutation feedback           \\
+        Convergence threshold      & 0.02               & Fitness plateau tolerance           \\
+        Mutation acceptance margin & 0.01               & Fitness drop tolerance ($\delta$)   \\
+        Feedback history window    & 5 generations      & Error aggregation depth             \\
+        S1 fitness metric          & $F_2$ (Macro)      & Recall-biased F-score ($\beta = 2$) \\
+        S2 fitness metric          & Gradient Consensus & Vote-ratio scoring                  \\
+        \bottomrule
+    \end{tabular}
+    \caption{GEPA hyperparameter configuration for S1 and S2 optimization.}
+    \label{tab:gepa-config}
+\end{table}
+
+Figure~\ref{fig:gepa} illustrates the overall GEPA optimization workflow.
+
+\begin{figure}[t]
+    \centering
+    \resizebox{\linewidth}{!}{
+        \small
+        \begin{tikzpicture}[
+            node distance=0.6cm and 0.5cm,
+            >={Stealth[length=3pt]},
+            % Styles matching the Architecture Figure
+            process/.style={rectangle, draw, rounded corners=2pt, minimum height=0.7cm,
+                    minimum width=1.8cm, align=center, font=\scriptsize\sffamily, fill=blue!10},
+            decision/.style={rectangle, draw, rounded corners=2pt, minimum height=0.7cm,
+                    minimum width=1.8cm, align=center, font=\scriptsize\sffamily, fill=green!10},
+            mutation/.style={rectangle, draw, rounded corners=2pt, minimum height=0.7cm,
+                    minimum width=1.8cm, align=center, font=\scriptsize\sffamily, fill=orange!15},
+            output/.style={rectangle, draw, rounded corners=2pt, minimum height=0.7cm,
+                    minimum width=1.8cm, align=center, font=\bfseries\scriptsize\sffamily,
+                    fill=red!10, thick}, scorer/.style={rectangle, draw, dashed, rounded
+                    corners=2pt, minimum height=0.7cm, minimum width=3.8cm, align=left,
+                    font=\tiny\sffamily, fill=yellow!10}, arrow/.style={->, thick, black!70,
+                    rounded corners=2pt}, dasharrow/.style={->, thick, dashed, black!50, rounded
+                    corners=2pt}, ]
+
+            % === TOP ROW (Main Flow) ===
+            \node[process] (pop) {Population\\(20--30 prompts)};
+            \node[process, right=0.6cm of pop] (eval) {Evaluate (MLflow)\\Train/Dev Alternation};
+            \node[decision, right=0.6cm of eval] (select) {Selection +\\Crossover};
+
+            % === SCORING DETAILS (Annotation) ===
+            \node[scorer, above=0.3cm of eval] (score_detail) {
+                \textbf{Custom Scorer (Trojan Horse Passthrough)}\\
+                \textbf{S1:} $F_{\beta=2}$ (Recall-biased) + Boundary Feedback\\
+                \textbf{S2:} Gradient Consensus (Vote Ratios) + Calibration
+            };
+            \draw[dashed, black!40] (eval.north) -- (score_detail.south);
+
+            % === BOTTOM ROW (Feedback & Output) ===
+            \node[mutation, below=0.8cm of select] (mutate) {Reflective\\LLM Mutation};
+            \node[output, below=0.8cm of pop] (best) {Best Prompt\\($+$4.2\% $F_1$)};
+
+            % === CONNECTIONS ===
+            % Main sequence
+            \draw[arrow] (pop) -- (eval);
+            \draw[arrow] (eval) -- (select);
+            \draw[arrow] (select) -- (mutate);
+
+            % Feedback Loop
+            \draw[dasharrow] (mutate.south) -- ++(0,-0.4)
+            -| ([xshift=-0.4cm]best.west)
+            |- (pop.west)
+            node[pos=0.25, above, font=\tiny\sffamily, text=black!60] {Next Generation (40--80 trials)};
+
+            % Best Prompt Extraction
+            \draw[arrow] (eval.south west) -- ++(-0.2,-0.2) |- (best.east);
+
+        \end{tikzpicture}
+    }
+    \caption{GEPA prompt optimization workflow. A population of prompt candidates
+        evolves through evaluation (tracked via MLflow), selection, crossover, and reflective LLM
+        mutation over 40--80 trials, alternating between train/dev splits.}
+    \label{fig:gepa}
+\end{figure}
+
+\subsubsection{Performance Gains}
+
+Automated prompt optimization via GEPA yielded significant absolute improvements over hand-crafted baselines:
+\begin{itemize}
+    \item \textbf{S1 (DD-CoT)}: $F_1$ improved from 0.72 to 0.81 (+12.5\%)
+    \item \textbf{S2 (Anti-Echo Council)}: Accuracy improved from 0.78 to 0.84 (+7.7\%)
+    \item \textbf{Hard-Negative Robustness}: S2 hard-negative accuracy improved from 0.62 to 0.79 (+27.4\%)
+\end{itemize}
+
+Fitness typically plateaus after 50--60 evaluations, with 90\% of final improvement achieved within the first 30 generations.
+
+\subsubsection{The Trojan Horse Label Passthrough}
+
+A key engineering challenge in applying evolutionary prompt optimization to structured NLP tasks is that standard LLM evaluation wrappers (e.g., MLflow's \texttt{evaluate} API) expose only the model's output to the scorer---not the gold labels needed for fitness computation. GEPA solves this through the \textbf{Trojan Horse pattern}: a passthrough injection mechanism that tunnels gold labels $y^*$ through the prediction wrapper into the custom scorer.
+
+Concretely, the wrapper function receives both the input document and its associated gold annotations. Rather than discarding the labels, it embeds them as a structured metadata field alongside the model's prediction in the output dictionary:
+\begin{equation}
+    \text{output} = \{\texttt{prediction}: \hat{y},\; \texttt{\_gold}: y^*,\; \texttt{\_metadata}: \text{context}\}
+\end{equation}
+The custom scorer then extracts both $\hat{y}$ and $y^*$ to compute arbitrary task-specific metrics (span-level $F_\beta$, boundary IoU, consensus gradients) that would otherwise be inaccessible through the standard API. This pattern effectively exploits the evaluation pipeline's data flow without modifying the framework itself, enabling rich diagnostic scoring for evolutionary fitness evaluation.
+
+\subsubsection{Phased Optimization Strategy}
+
+GEPA implements a \textbf{phased optimization} strategy that targets different pipeline components in sequence, preventing co-adaptation artifacts:
+\begin{enumerate}
+    \item \textbf{Phase 1 --- S1 Generator:} Optimize the extraction prompt in isolation, using the development split for fitness evaluation. This establishes a strong base for marker extraction quality.
+    \item \textbf{Phase 2 --- S1 Critic/Refiner:} With the Generator prompt frozen, optimize the Critic and Refiner prompts to maximize error detection and correction rates.
+    \item \textbf{Phase 3 --- S2 Council:} Optimize the council member prompts jointly, targeting hard-negative robustness (debunking/reporting texts that discuss conspiracies without endorsing them).
+    \item \textbf{Phase 4 --- Integration:} A final joint optimization pass with reduced learning rate ($p_m = 0.1$, $\delta = 0.005$) to fine-tune interactions between optimized components.
+\end{enumerate}
+
+Each phase alternates between training and development splits across generations to prevent overfitting: odd generations evaluate on the training split, even generations on the development split, and the fitness used for selection is the minimum of the two most recent evaluations.
+
+\subsubsection{Convergence Analysis}
+
+GEPA's convergence behavior reveals several empirical regularities:
+\begin{itemize}
+    \item \textbf{Rapid initial gains:} The first 10--15 generations typically account for 60--70\% of total improvement, as obvious prompt deficiencies (ambiguous instructions, missing constraints) are quickly identified and corrected by the reflector.
+    \item \textbf{Plateau detection:} Convergence is detected when the top-$k$ fitness values change by less than $\epsilon = 0.02$ over 5 consecutive generations. Early stopping prevents wasteful computation and reduces the risk of overfitting to scorer artifacts.
+    \item \textbf{Diversity maintenance:} Unlike standard genetic algorithms, GEPA does not enforce explicit diversity mechanisms (e.g., fitness sharing). Instead, the semantic nature of LLM-guided crossover and mutation naturally maintains diversity, as the LLM generates meaningfully different prompt variants rather than character-level perturbations.
+    \item \textbf{Diminishing returns:} Beyond 60 generations, improvements are primarily cosmetic (rephrasing) rather than strategic (restructuring), suggesting that the prompt search space has a relatively smooth fitness landscape for well-defined NLP tasks.
+\end{itemize}
+
+\subsection{Actual Prompt Excerpts}
+\label{sec:prompt-excerpts}
+
+This section presents representative excerpts from the actual XML-structured prompts used in the system, illustrating the design patterns discussed above. Full prompts are available in the supplementary materials.
+
+\subsubsection{S1 DD-CoT Generator Excerpt}
+
+The generator prompt establishes the extraction mandate and Neutrality Gate check:
+
+\begin{lstlisting}[language=XML, caption=S1 DD-CoT Generator: role definition and neutrality gate (excerpt)., label=lst:s1-generator]
+<system_directive>
+  <role>
+    You are a Conspiracy-Marker Extractor
+    (Triangle of Malice) for Reddit-like discourse.
+    Your job is NOT to summarize text, and NOT to
+    extract generic entities/events.
+    Your job is to extract only the structural
+    skeleton of conspiratorial/hostile narratives:
+    - Actor -> Action -> Effect,
+      with optional Evidence and Victim.
+  </role>
+  <critical_correction>
+    Most texts will be NEGATIVE EXAMPLES.
+    If there is no malice/plot/cover-up/control/harm
+    frame, you MUST output empty extractions.
+    Do NOT extract:
+    - normal science claims
+    - routine news reporting
+    - ordinary actions
+    - personal reactions
+  </critical_correction>
+  <neutrality_gate>
+    First decide: Does the text contain a
+    conspiratorial/hostile accusation structure?
+    <process_conditions>
+      - Malevolent coordination: "they are working
+        together", "cabal", "deep state"
+      - Secrecy/cover-up: "hid evidence",
+        "suppressed", "censored"
+      - Manipulation/control: "brainwashed",
+        "rigged", "controlled opposition"
+      If none appear, output:
+        dominant_narrative: "neutral"
+        extractions: []
+    </process_conditions>
+  </neutrality_gate>
+  ...
+</system_directive>
+\end{lstlisting}
+
+\subsubsection{S2 Prosecutor Excerpt}
+
+The Prosecutor prompt demonstrates the adversarial perspective encoding with explicit indictment criteria:
+
+\begin{lstlisting}[language=XML, caption=S2 Prosecutor prompt: role mandate and indictment criteria (excerpt)., label=lst:s2-prosecutor]
+<system_directive>
+  <role>
+    You are the PROSECUTOR.
+    Your mandate is to identify any endorsement of
+    conspiracy thinking:
+    - Explicit
+    - Implicit
+    - Structural
+    - Coded
+    <indictment_criteria>
+      <institutional_capture_rule id="1">
+        If an institution is framed as:
+        - Working against the people
+        - Controlled by hidden interests
+        - Deliberately betraying its mandate
+        -> CONSPIRACY
+        Distinction:
+        - Failure / incompetence -> NON
+        - Intentional cover-up -> INDICT
+      </institutional_capture_rule>
+      <overt_tyranny id="2">
+        If public actions are framed as:
+        - Weapons / Compliance tests
+        - Enslavement tools
+        - Depopulation strategies
+        -> INDICT
+        Secrecy is NOT required.
+      </overt_tyranny>
+    </indictment_criteria>
+    <structural_assertion_rule>
+      Statements asserting the existence of a
+      conspiracy as fact - even without
+      first-person belief - are NOT neutral.
+      Rule: If the author presents coordinated
+      malice as an established reality, treat
+      as ENDORSEMENT BY ASSERTION.
+    </structural_assertion_rule>
+    <legal_precedents>
+      {{rag_context}}
+    </legal_precedents>
+  </role>
+</system_directive>
+\end{lstlisting}
+
+\subsubsection{S2 Defense Attorney Excerpt}
+
+The Defense Attorney prompt encodes the complementary perspective with explicit acquittal defenses:
+
+\begin{lstlisting}[language=XML, caption=S2 Defense Attorney prompt: acquittal framework and Reporter Defense (excerpt)., label=lst:s2-defense]
+<system_directive>
+  <role>
+    You are the DEFENSE ATTORNEY.
+    Your duty is to prevent false convictions
+    by identifying cases where the author is:
+    - Reporting / Quoting
+    - Mocking / Critiquing
+    WITHOUT endorsing conspiracy ideation.
+    You assume innocence by default.
+    <objective>
+      <maximize_precision>
+        Empirical prior:
+        > ~72% of texts containing conspiracy
+          markers are neutral or critical.
+        You are the tribunal's Reporter Trap
+        firewall.
+      </maximize_precision>
+    </objective>
+    <acquittal_framework>
+      Apply these defenses independently.
+      If ANY applies -> vote NON.
+      <the_reporter_defense id="1">
+        Mentioning a conspiracy != believing it.
+        Evidence: Attribution verbs:
+          "according to", "they claim",
+          "the theory says"
+        If the conspiracy claim is:
+        - Clearly attributed
+        - NOT endorsed or validated
+        -> ACQUIT (NON)
+      </the_reporter_defense>
+      <the_incompetence_greed_defense id="2">
+        Most harm comes from:
+        - Stupidity / Bureaucracy / Profit
+        NOT coordinated malice.
+        If intent is NOT explicit -> ACQUIT
+      </the_incompetence_greed_defense>
+      <the_satire_mockery_defense id="3">
+        Indicators: Exaggeration, irony ("/s"),
+        meme logic
+        If tone signals distance -> ACQUIT
+      </the_satire_mockery_defense>
+    </acquittal_framework>
+    <concession_clause>
+      You MUST concede to the Prosecutor if
+      the author explicitly claims a powerful
+      group is intentionally harming people.
+    </concession_clause>
+  </role>
+</system_directive>
+\end{lstlisting}
+
+The adversarial design is evident: the Prosecutor maximizes recall with liberal indictment criteria, while the Defense Attorney maximizes precision through systematic acquittal defenses. The Judge synthesizes both perspectives with calibrated confidence scoring, creating a system that is simultaneously sensitive to genuine conspiracy endorsement and robust against false positives from reporting, satire, and policy criticism.

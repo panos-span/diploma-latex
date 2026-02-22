@@ -1,0 +1,159 @@
+\section{Psycholinguistic Grounding}
+\label{sec:psycholinguistic-method}
+
+A distinguishing feature of our approach is the explicit grounding in \textbf{evolutionary psychology} and \textbf{psycholinguistic theory} of conspiratorial rhetoric. Rather than treating conspiracy detection as a surface-level pattern matching task, we encode theoretical knowledge about \textit{why} conspiracy theories emerge and \textit{how} they manifest linguistically~\cite{douglas2019understanding}.
+
+
+\subsection{Theoretical Foundation}
+
+The core prompt preamble establishes the psycholinguistic framework that guides all extraction and classification agents:
+
+\begin{tcolorbox}[colback=purple!5, colframe=purple!50!black, title=\textbf{Psycholinguistic Preamble}]
+``You are an expert computational psycholinguist. Align your reasoning with psycholinguistic and evolutionary accounts of conspiratorial rhetoric.''
+\end{tcolorbox}
+
+This framing is not merely cosmetic---it primes the model to distinguish between genuine conspiratorial ideation and superficially similar discourse (policy criticism, news reporting, satire) by attending to the \textit{psychological function} of language rather than surface-level keyword matching.
+
+
+\subsection{Conspiracy Marker Ontology}
+\label{sec:marker-ontology}
+
+The five psycholinguistic marker categories are grounded in evolutionary threat detection heuristics. Each marker corresponds to a component of the conspiratorial narrative structure:
+
+\begin{enumerate}
+    \item \textbf{Actor (The Conspirators):} Agents alleged to secretly orchestrate events. The Actor category encompasses three subtypes that reflect different levels of abstraction in conspiratorial attribution:
+    \begin{itemize}
+        \item \textit{Core Actors:} Vague collective agents serving as prototypical outgroup targets (``The Elites'', ``They'', ``Globalists''). These exploit the human cognitive bias toward agent detection in complex causal chains.
+        \item \textit{Systemic Actors:} Abstract forces or institutions framed with malicious agency (``The Migration Act'', ``Big Pharma''). These conflate institutional processes with intentional malice.
+        \item \textit{Institutional Actors:} Specific formal bodies presented as conspiratorial agents (``The CIA'', ``The Media''), regardless of whether they are praised or condemned.
+    \end{itemize}
+    
+    \item \textbf{Action (The Mechanism):} What the Actor \textit{does}---verbs implying control, secrecy, or harm. The action vocabulary provides critical discriminative signal:
+    \begin{itemize}
+        \item \textit{Conspiratorial actions:} ``engineered'', ``suppressed'', ``brainwashed'', ``censored'', ``staged'', ``weaponized''
+        \item \textit{Non-conspiratorial actions:} ``presented'', ``issued'', ``recommended'', ``held a meeting'', ``published''
+    \end{itemize}
+    
+    \item \textbf{Effect (The Outcome):} The goal or anticipated consequence of the malicious Action. Effects typically invoke existential or large-scale threats: ``depopulation'', ``total control'', ``mass death'', ``enslavement'', ``loss of freedoms.''
+    
+    \item \textbf{Victim (The Target):} The entity bearing the ``evolutionary cost'' of the conspiracy. Victims are framed as innocents being exploited: ``our children'', ``the public'', ``taxpayers'', ``patients.'' The Victim category triggers evolutionary in-group protection instincts.
+    
+    \item \textbf{Evidence (Epistemic Weaponry):} Rhetorical supports used to validate conspiratorial claims. Unlike standard evidence citations, conspiracy ``evidence'' often exhibits distinctive patterns:
+    \begin{itemize}
+        \item \textit{Privileged knowledge claims:} ``The video'', ``The proof'', ``Hunter's Laptop'', ``Leaked files''
+        \item \textit{Quantitative inflation:} ``A massive amount of data'', ``100s of cases''
+        \item \textit{Self-sealing epistemics:} ``Do your own research'', ``Connect the dots'', ``Mainstream media lies''
+    \end{itemize}
+\end{enumerate}
+
+Table~\ref{tab:marker-examples} provides concrete examples of how span extraction distinguishes between conspiratorial and non-conspiratorial instances of each marker category.
+
+\begin{table}[H]
+\centering
+\caption{Marker category examples: conspiratorial vs. non-conspiratorial instances.}
+\label{tab:marker-examples}
+\begin{tabular}{@{}llp{5cm}p{5cm}@{}}
+\toprule
+\textbf{Category} & \textbf{Conspiratorial} & \textbf{Non-conspiratorial} \\
+\midrule
+Actor & ``the corrupt media'' & ``media'' (generic) \\
+Actor & ``Big Pharma'' & ``pharmaceutical companies'' \\
+Actor & ``the deep state'' & ``government agencies'' \\
+Action & ``rigged the election'' & ``held a meeting'' \\
+Action & ``suppressed evidence'' & ``presented data'' \\
+Effect & ``total surveillance'' & ``increased monitoring'' \\
+Victim & ``our children'' & ``participants in the study'' \\
+Evidence & ``leaked emails'' & ``published report'' \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Explicit Conspiratorial Signal Detection}
+
+The S2 classification prompts encode \textbf{psychological signatures} of conspiracy ideation that each council member is trained to detect.
+
+\subsubsection{Nefarious Intent Detection}
+
+The Prosecutor prompt encodes the \textbf{Institutional Capture Rule}:
+
+\begin{quote}
+``If an institution is framed as: (a) Working against the people, (b) Controlled by hidden interests, (c) Deliberately betraying its mandate $\rightarrow$ CONSPIRACY. Distinction: Failure/incompetence $\rightarrow$ NON; Intentional cover-up $\rightarrow$ INDICT.''
+\end{quote}
+
+This distinguishes \textit{malice} from \textit{incompetence}---a critical boundary in conspiracy detection that the Hanlon's Razor defense specifically exploits.
+
+\subsubsection{Epistemic Arrogance Markers}
+
+The Profiler prompt detects ``True Believer'' signals that indicate strong personal identification with conspiratorial worldviews:
+
+\begin{itemize}
+    \item \textbf{Privileged insight claims:} ``Wake up'', ``Do your research'', ``You're being lied to'', ``The truth is coming out'' $\rightarrow$ HIGH-CONFIDENCE CONSPIRACY.
+    \item \textbf{Us-vs-Them identity framing:} ``We'' = enlightened victims, ``They'' = hidden controllers.
+    \item \textbf{Moral absolutism:} ``Evil'', ``demonic'', ``crimes against humanity.''
+    \item \textbf{Ideological dog whistles:} ``Globalist'', ``Cabal'', ``Sheeple'', ``False Flag'' (unironic usage).
+\end{itemize}
+
+\subsubsection{Structural Assertion Rule}
+
+All S2 prompts encode the \textbf{Structural Assertion Rule}---a critical insight from error analysis that addresses the non-obvious boundary between assertion and reporting:
+
+\begin{tcolorbox}[colback=red!5, colframe=red!50!black, title=\textbf{Structural Assertion Rule (Critical Patch)}]
+A conspiracy claim does NOT require first-person belief, emotional language, or secret plotting.
+
+\textbf{Rule:} If the author \textit{asserts the existence of coordinated, intentional malice as a factual condition}---even impersonally or legally---this constitutes \textbf{ENDORSEMENT BY ASSERTION}.
+
+\textbf{Examples (CONSPIRACY):}
+\begin{itemize}[noitemsep]
+    \item ``There has been a conspiracy to undermine...''
+    \item ``The system was designed to keep people poor.''
+    \item ``This operation was intended to suppress the truth.''
+\end{itemize}
+
+\textbf{Non-Examples (NON):}
+\begin{itemize}[noitemsep]
+    \item ``Some claim there was a conspiracy...'' (attributed)
+    \item ``The article alleges...'' (reporting frame)
+    \item ``Critics argue...'' (distancing)
+\end{itemize}
+
+\textbf{Important:} Passive voice and formal tone do NOT imply neutrality.
+\end{tcolorbox}
+
+
+\subsection{Data-Aware Context Encoding}
+
+The prompts encode knowledge about the specific characteristics of the data source to prevent systematic errors from misinterpreting domain-specific conventions:
+
+\begin{tcolorbox}[colback=gray!5, colframe=gray!50, title=\textbf{Data Profile Block}]
+\begin{itemize}[noitemsep]
+    \item \textbf{Source:} Reddit Submission Statements (SS)
+    \item \textbf{Function:} SS is a comment required by moderators to explain a link
+    \item \textbf{Implication:} Text often \textit{summarizes} linked content (``OP claims that...'') rather than expressing user's own belief
+    \item \textbf{Rhetoric:} High prevalence of sarcasm, ``Just Asking Questions'' (JAQ), community slang (``based'', ``shill'', ``glowie'')
+    \item \textbf{Structure:} Markdown-flattened; URLs replaced with [URL]
+\end{itemize}
+\end{tcolorbox}
+
+This data-awareness is injected into all agent prompts, enabling them to correctly interpret Reddit-specific conventions such as Submission Statements (which summarize linked content without necessarily endorsing it) and community-specific slang.
+
+
+\subsection{The Cues and Pitfalls Playbook}
+
+Beyond formal definitions, prompts encode explicit \textbf{cues} (positive signals indicating conspiratorial content) and \textbf{pitfalls} (common error patterns to avoid):
+
+\paragraph{Positive Cues:}
+\begin{itemize}[noitemsep]
+    \item \textbf{Vague/Collective Agents:} ``they'', ``the elite'', ``globalists'', ``deep state'', ``big pharma''
+    \item \textbf{Control/Hostility Verbs:} plot, engineer, manipulate, gaslight, weaponize
+    \item \textbf{Self-Sealing Epistemics:} ``do your own research'', ``connect the dots'', ``mainstream media lies''
+\end{itemize}
+
+\paragraph{Pitfalls to Avoid:}
+\begin{itemize}[noitemsep]
+    \item \textbf{The ``Reporter'' Trap:} Submission Statements often summarize linked articles. ``The article argues that...'' is NOT endorsement.
+    \item \textbf{The ``JAQ'' Trap:} ``Just Asking Questions'' is a conspiracy tactic ONLY if the question presupposes a hidden plot.
+    \item \textbf{Overt Tyranny Clause:} A conspiracy does NOT need to be hidden. If government/corporation is alleged to \textit{intentionally oppress} openly $\rightarrow$ still CONSPIRACY.
+\end{itemize}
+
+This comprehensive psycholinguistic grounding ensures that our system's classification decisions are both \textit{theory-informed} and \textit{empirically calibrated} against the specific failure modes identified during development.

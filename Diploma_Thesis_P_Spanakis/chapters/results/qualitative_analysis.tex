@@ -1,0 +1,20 @@
+\section{Qualitative Error Analysis}
+\label{sec:qualitative}
+
+We present concrete linguistic examples illustrating the mechanisms underlying our quantitative results, examining both architectural successes and persistent failure modes.
+
+\paragraph{Success Case: Disentangling Agency.}
+Section~\ref{sec:ablations} demonstrated that DD-CoT improved Actor F1 by +2.7 points (Table~\ref{tab:cot_ablation}), attributing this to enhanced agency detection. We trace this improvement to the model's ability to resolve \textbf{grammatical role vs.\ semantic role} mismatches in passive and complex constructions. Consider: \textit{``The public was manipulated by the media to distrust vaccines.''}
+
+\textbf{Standard CoT Failure.} Inclusion-only reasoning often tags \textit{``the public''} as \textsc{Actor} due to subject position, or extracts \textit{``manipulated''} as \textsc{Action} while missing \textit{``the media''} as semantic agent.
+
+\textbf{DD-CoT Success.} Discriminative prompting forces explicit exclusion of confusable labels (e.g., \textsc{Actor} vs.\ \textsc{Victim}), helping the model recover semantic roles beyond surface syntax.
+
+\paragraph{Mitigating the Reporter Trap.}
+Contrastive few-shot retrieval reduces false positives by retrieving non-conspiratorial but lexically similar precedents (e.g., debunking/reporting), encouraging attention to attribution and framing signals.
+
+\paragraph{Remaining Failure Mode: High-Context Irony.}
+Poe's Law scenarios remain difficult when sarcasm is not explicitly marked; marker density can be misread as endorsement without user-history or discourse context.
+
+\paragraph{Remaining Failure Mode: Implicit Stance.}
+Documents that endorse conspiracies through implication rather than explicit assertion (e.g., selective presentation of evidence without stated conclusions) challenge the council's explicit stance analysis.

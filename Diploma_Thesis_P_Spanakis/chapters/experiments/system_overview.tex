@@ -1,0 +1,237 @@
+\section{System Architecture}
+\label{sec:system-overview}
+
+Figure~\ref{fig:arch} summarizes the inference flow of our two-stage agentic system.
+
+\begin{figure*}[t]
+    \vspace{-6pt}
+    \centering
+    \scriptsize
+    \begin{tikzpicture}[
+        node distance=0.6cm and 0.4cm,
+        >={Stealth[length=3pt]},
+        % Styles
+        inputbox/.style={rectangle, draw, rounded corners=2pt, minimum height=0.7cm,
+                minimum width=1.4cm, align=center, font=\scriptsize\sffamily, fill=gray!10},
+        ragbox/.style={rectangle, draw, rounded corners=2pt, minimum height=0.7cm,
+                minimum width=1.4cm, align=center, font=\scriptsize\sffamily, fill=green!10},
+        llmbox/.style={rectangle, draw, rounded corners=2pt, minimum height=0.7cm,
+                minimum width=1.4cm, align=center, font=\scriptsize\sffamily, fill=blue!10},
+        detbox/.style={rectangle, draw, rounded corners=2pt, minimum height=0.7cm,
+                minimum width=1.4cm, align=center, font=\scriptsize\sffamily, fill=orange!15},
+        outputbox/.style={rectangle, draw, rounded corners=2pt, minimum height=0.7cm,
+                minimum width=1.4cm, align=center, font=\scriptsize\sffamily, thick},
+        arrow/.style={->, thick, black!70, rounded corners=2pt}, dasharrow/.style={->,
+                thick, dashed, black!50, rounded corners=2pt},
+        grouplab/.style={font=\bfseries\scriptsize\sffamily, text=black!70},
+        labeltext/.style={font=\tiny\sffamily, text=black!60, midway, fill=white, inner
+                sep=1pt}, ]
+
+        % === INPUT ===
+        \node[inputbox] (input) {Document};
+
+        % === S1 PIPELINE (Top Row) ===
+        \node[ragbox, right=0.8cm of input] (s1rag) {Stratified\\Few-shot\\Retrieval};
+        \node[llmbox, right=0.5cm of s1rag] (gen) {DD-CoT\\Generator};
+        \node[llmbox, right=0.5cm of gen] (critic) {Enhanced\\Critic};
+        \node[llmbox, right=0.5cm of critic] (refiner) {Refiner\\Agent};
+        \node[detbox, right=0.5cm of refiner] (verifier) {Deterministic\\Verifier};
+        \node[outputbox, right=0.5cm of verifier] (s1out) {S1 Spans};
+
+        % S1 Connections
+        \draw[arrow] (input) -- (s1rag);
+        \draw[arrow] (s1rag) -- (gen);
+        \draw[arrow] (gen) -- (critic);
+        \draw[arrow] (critic) -- (refiner);
+        \draw[arrow] (refiner) -- (verifier);
+        \draw[arrow] (verifier) -- (s1out);
+
+        % S1 Group Label
+        \begin{scope}[on background layer]
+            \node[draw=blue!40, fill=blue!3, rounded corners=4pt, dashed,
+            fit=(s1rag)(gen)(critic)(refiner)(verifier)(s1out),
+            inner sep=8pt, label={[grouplab]above:{S1: Marker Extraction (Self-Refine + DD-CoT)}}] (s1group) {};
+        \end{scope}
+
+        % === S2 PIPELINE (Bottom Row) ===
+        \node[ragbox, below=2.2cm of s1rag] (s2rag) {Contrastive\\Few-shot\\Retrieval};
+        \node[detbox, right=0.5cm of s2rag] (forensic) {Forensic\\Profiler};
+
+        % PARALLEL COUNCIL (Strict 2x2 Grid)
+        \node[llmbox, right=0.8cm of forensic, yshift=0.6cm] (pros) {Prosecutor};
+        \node[llmbox, right=0.5cm of pros] (literal) {Literalist\\{\tiny $\tau$=0.4}};
+
+        \node[llmbox, right=0.8cm of forensic, yshift=-0.6cm] (defense) {Defense};
+        \node[llmbox, right=0.5cm of defense] (profiler) {Stance\\Profiler};
+
+        % Judge
+        \node[llmbox, right=0.6cm of $(literal.east)!0.5!(profiler.east)$] (judge) {Calibrated\\Judge};
+        \node[outputbox, right=0.5cm of judge] (verdict) {Final\\Verdict};
+
+        % Fork (Clean Distribution)
+        \coordinate[right=0.4cm of forensic] (fork_point);
+        \draw[thick, black!70] (forensic.east) -- (fork_point);
+        \draw[arrow] (fork_point) |- (pros.west);
+        \draw[arrow] (fork_point) |- (defense.west);
+
+        % S2 Connections
+        \draw[arrow] (input.south) |- (s2rag.west);
+        \draw[arrow] (input.south) |- ($(s2rag.south) + (0,-0.5)$) -| (forensic.south);
+
+        % S1 Out to Council 
+        \draw[arrow] (s1out.south) -- ++(0,-1.5) -| (fork_point);
+
+        % S2RAG to Council (Bypassing Forensic)
+        \draw[arrow] (s2rag.north) -- ++(0,0.3) -| (fork_point);
+
+        % Internal Flow
+        \draw[arrow] (pros) -- (literal);
+        \draw[arrow] (defense) -- (profiler);
+
+        % Merge (Clean Join)
+        \draw[arrow] (literal.east) -- ++(0.2,0) |- (judge.west);
+        \draw[arrow] (profiler.east) -- ++(0.2,0) |- (judge.west);
+        \draw[arrow] (judge) -- (verdict);
+
+        % S2 Group Label
+        \begin{scope}[on background layer]
+            \node[draw=red!40, fill=red!3, rounded corners=4pt, dashed,
+            fit=(s2rag)(forensic)(pros)(defense)(literal)(profiler)(judge)(verdict),
+            inner sep=8pt, label={[grouplab]below:{S2: Anti-Echo Chamber (Parallel Council)}}] (s2group) {};
+        \end{scope}
+
+    \end{tikzpicture}
+    \vspace{-4pt}
+    \caption{System architecture overview. \textbf{S1} (top): DD-CoT Self-Refine extracts marker strings, then a deterministic verifier anchors them to character offsets. \textbf{S2} (bottom): an Anti-Echo Chamber (forensic profiling + parallel council + calibrated judge) predicts conspiracy endorsement.}
+    \label{fig:arch}
+    \vspace{-10pt}
+\end{figure*}
+
+\subsection{S1: Marker Extraction via DD-CoT}
+\label{sec:s1-system}
+
+S1 produces a set of labeled spans by combining a self-refinement loop with a deterministic span locator. The graph consumes the document and retrieved few-shot precedents, generates candidate marker \emph{strings} with labels, iteratively corrects them, then anchors each string to \texttt{startIndex} and \texttt{endIndex} in the original text.
+
+\subsubsection{Hybrid Architecture Rationale}
+
+We explicitly decouple \textit{semantic identification} from \textit{span indexing}. LLMs can justify category assignments but are brittle at character-accurate localization \cite{fu2024struggle}. We therefore (i) ask the LLM to emit verbatim marker strings with labels, and (ii) compute offsets with a deterministic locator that performs exact matching against the source text. This avoids ``hallucinated spans'' and off-by-one indices while preserving the LLM's interpretive signal \cite{ogasa-arase-2025-hallucinated}.
+
+\subsubsection{Dynamic Discriminative Chain-of-Thought (DD-CoT)}
+
+DD-CoT extends CoT reasoning \cite{wei2022chain} with an explicit \emph{discrimination step}. For each candidate span, the generator must state (i) evidence for the chosen label and (ii) a short counter-argument against at least one confusable label. This forces the model to commit to a decision boundary in frequent confusions (e.g., \textsc{Actor} vs. \textsc{Victim}, \textsc{Action} vs.\ \textsc{Effect}) rather than producing post-hoc rationales.
+
+\subsubsection{Agent Pipeline}
+
+The Self-Refine loop comprises four sequential nodes:
+\begin{enumerate}
+    \item A DD-CoT \textbf{Generator} that proposes labeled marker strings;
+    \item An \textbf{Enhanced Critic} that checks verbatimness, boundaries, label discrimination, and missing spans;
+    \item A \textbf{Refiner} that applies minimal edits; and
+    \item A \textbf{Deterministic Verifier} that maps strings to character offsets and deduplicates overlaps.
+\end{enumerate}
+
+The Self-Refine pattern follows the standard critique--revise loop \cite{madaan2023selfrefine} but operates over typed intermediate artifacts (candidate spans, critiques, and edits), improving controllability and enabling deterministic verification.
+
+\subsubsection{Deterministic Verifier}
+
+The Deterministic Verifier is a non-LLM post-processing node that serves as the \textit{structural locator}, anchoring LLM-generated text strings to character-precise offsets through a five-tier matching cascade:
+\begin{enumerate}
+    \item[(i)] \textbf{Exact match:} Byte-for-byte substring search supporting nth-occurrence disambiguation.
+    \item[(ii)] \textbf{Case-insensitive:} Unicode-safe lowered comparison with original-position projection.
+    \item[(iii)] \textbf{Normalized:} Smart-quote straightening, whitespace collapse, and lowering with index remapping to recover original character offsets.
+    \item[(iv)] \textbf{Fuzzy (Levenshtein):} Approximate matching with maximum edit distance $\leq 15\%$ of snippet length (minimum~1), activated only for spans $>$4 characters to avoid spurious short matches.
+    \item[(v)] \textbf{SequenceMatcher alignment:} LCS-based last-resort recovery requiring $\geq 60\%$ character coverage and compactness $\leq 1.5\times$ snippet length, with word-boundary snapping.
+\end{enumerate}
+Each tier is attempted in order; the first successful match is accepted. Additionally, the Verifier implements aggressive cross-label deduplication to eliminate overlapping or duplicate spans.
+
+\subsection{S2: Classification via Anti-Echo Chamber}
+\label{sec:s2-system}
+
+S2 targets a specific failure mode: \textbf{Reporter Trap} false positives, in which topical discussion of conspiracies is conflated with endorsement (e.g., reporting, debunking, satire). Single-pass classifiers often over-commit early and underweight stance cues \cite{wan-etal-2025-unveiling}. We therefore structure S2 as: (i) a deterministic \emph{Forensic Profiler} that emits stance-relevant warnings; (ii) a \emph{Parallel Council} that produces independent pro/contra analyses; and (iii) a \emph{Calibrated Judge} that aggregates votes with conservative confidence rules.
+
+\subsubsection{Forensic Profiler}
+
+Before LLM deliberation, a deterministic node computes lightweight linguistic signals that are injected as structured warnings. Six metrics are extracted, each normalized by total word count $|W|$:
+\begin{enumerate}
+    \item \textbf{Attribution Density:} $\text{AD} = |\{w \in W : w \in V_{\text{attr}}\}| \,/\, |W|$, where $V_{\text{attr}}$ includes distancing verbs (\textit{said}, \textit{claimed}, \textit{according to}, \textit{reported}, \textit{sources}). Texts with AD $> 3.5\%$ receive an explicit \textsc{Reporter\_Warning} flag.
+    \item \textbf{Shouting Score:} $\text{SS} = |\{w \in W : w = \texttt{UPPER}(w) \land |w| > 1\}| \,/\, |W|$. Scores exceeding $10\%$ trigger an \textsc{Emotional\_Intensity} flag.
+    \item \textbf{JAQing Detection:} A boolean flag activated when question density $> 0.35$ (questions per sentence) \textit{and} hedging ratio $> 5\%$, identifying the ``Just Asking Questions'' rhetorical manipulation pattern.
+    \item \textbf{Agency Gap:} Passive voice proxy computed as the frequency of passive-voice indicators (\textit{been}, \textit{being}, \textit{was}, \textit{were}, \textit{by}). Values $> 6\%$ suggest hidden agency attribution.
+    \item \textbf{Epistemic Intensity:} Frequency of truth-claiming terms (\textit{proof}, \textit{truth}, \textit{exposed}, \textit{revealed}, \textit{undeniable}) normalized by $|W|$.
+    \item \textbf{Question Density:} Number of question marks per sentence, used as a component of JAQing detection.
+\end{enumerate}
+
+These metrics are injected into the Calibrated Judge's case file as structured contextual warnings.
+
+\subsubsection{Parallel Council Architecture}
+
+The \textbf{Anti-Echo Chamber} enforces independent assessment by four personas that receive identical inputs (document, S1 markers, retrieval context, profiler warnings) and produce structured votes without seeing each other's outputs:
+\begin{enumerate}
+    \item \textbf{Prosecutor:} evidence \emph{for} endorsement.
+    \item \textbf{Defense Attorney:} evidence \emph{against} endorsement (reporting/debunking/satire cues).
+    \item \textbf{Literalist:} literal entailment and burden-of-proof checks.
+    \item \textbf{Profiler:} stance cues (certainty, framing, group dynamics).
+\end{enumerate}
+
+Each juror outputs: (i) a verdict with confidence, (ii) the primary evidence supporting that verdict, (iii) a mandatory counter-argument, and (iv) uncertainty flags for known ambiguities. This design reduces information leakage and ordering effects typical of sequential debate.
+
+\subsubsection{Calibrated Judge}
+
+The Judge aggregates votes and applies conservative confidence rules. We compute a weighted score:
+$$W = \sum_{j=1}^{4} \begin{cases} +c_j & \text{if } v_j = \texttt{conspiracy} \\ -c_j & \text{if } v_j = \texttt{non} \end{cases}$$
+with equal persona weights, where $c_j \in [0,1]$ is juror confidence and $v_j$ its verdict. When the council splits ($2$--$2$), we cap confidence at $0.75$, mark the case \texttt{borderline}, and default to \texttt{non} when evidence remains ambiguous. Overrides of a non-split majority are explicitly flagged.
+
+\subsection{Contrastive Few-shot Retrieval}
+\label{sec:contrastive-rag}
+
+In-context few-shot examples are retrieved for the given document (no augmentation is performed). A contrastive strategy is used to supply discriminative precedents (including hard negatives for the Reporter Trap).
+
+\subsubsection{S1: Stratified Contrastive Sampling}
+
+For marker extraction, we implement a dual-axis contrastive strategy. First, we retrieve \textbf{balanced positive and negative examples} to teach the model that psycholinguistic markers can appear in \textit{both} contexts. Second, within these retrieved examples, we apply \textbf{marker-type stratification}, allocating 60\% retrieval weight to underrepresented categories (\textsc{Evidence} and \textsc{Victim}). Finally, all candidates undergo \textbf{cross-encoder reranking} (BAAI/bge-reranker-v2-m3) \cite{bge_m3} to prioritize examples with similar discourse structure over mere lexical overlap.
+
+The overall contrastive retrieval strategy is illustrated in Figure~\ref{fig:rag}.
+
+\begin{figure}[t]
+    \centering
+    \small
+    \resizebox{\linewidth}{!}{
+        \begin{tikzpicture}[
+            node distance=0.5cm and 0.4cm,
+            >={Stealth[length=3pt]},
+            box/.style={rectangle, draw, rounded corners=2pt, minimum height=0.6cm,
+                    align=center, font=\scriptsize\sffamily, inner sep=2pt},
+            sbox/.style={box, fill=blue!10, minimum width=2.2cm},
+            nbox/.style={box, fill=red!10, minimum width=2.2cm},
+            gbox/.style={box, fill=green!10, minimum width=2.8cm},
+            arrow/.style={->, thick, black!70},
+            ]
+
+            \node[box, fill=gray!15, minimum width=2.5cm] (query) {Input Document};
+            \node[box, fill=yellow!15, below=0.5cm of query, minimum width=2.5cm] (chroma) {ChromaDB Embeddings};
+            \draw[arrow] (query) -- node[right, font=\tiny\sffamily] {embed} (chroma);
+
+            \node[sbox, below left=0.6cm and 0.3cm of chroma] (s1ret) {Balanced + Type\\Stratification (60\%)};
+            \node[nbox, below right=0.6cm and 0.3cm of chroma] (s2ret) {Hard Negatives\\(Non-CT + Markers)};
+            \draw[arrow] (chroma.south) -- ++(-0.1,-0.2) -| (s1ret.north);
+            \draw[arrow] (chroma.south) -- ++(0.1,-0.2) -| (s2ret.north);
+
+            \node[gbox, below=0.5cm of s1ret] (rerank1) {Cross-Encoder\\Reranking (3$\times$)};
+            \node[gbox, below=0.5cm of s2ret] (rerank2) {Reranking (4$\times$)\\+ Filtering};
+            \draw[arrow] (s1ret) -- (rerank1);
+            \draw[arrow] (s2ret) -- (rerank2);
+
+            \node[box, fill=blue!5, below=0.5cm of rerank1, minimum width=2.2cm] (out1) {S1 Few-Shots};
+            \node[box, fill=red!5, below=0.5cm of rerank2, minimum width=2.2cm] (out2) {S2 Precedents};
+            \draw[arrow] (rerank1) -- (out1);
+            \draw[arrow] (rerank2) -- (out2);
+
+        \end{tikzpicture}
+    }
+    \caption{Contrastive few-shot retrieval architecture.}
+    \label{fig:rag}
+\end{figure}
+
+\subsubsection{S2: Hard Negative Mining}
+
+For conspiracy detection, we implement a \textbf{pure contrastive strategy} via hard negative mining \cite{karpukhin-etal-2020-dense}. Standard similarity-based retrieval causes the model to conflate \textit{topical similarity} with \textit{stance endorsement}. To explicitly teach the boundary, we retrieve documents labeled ``non-conspiracy'' \textit{that contain S1 markers}. These are \textit{hard} negatives because they share conspiracy-related vocabulary but differ in stance. By forcing the model to compare structurally similar examples with opposite labels, we compel it to attend to \textbf{stance cues} such as attribution verbs, hedging markers, and framing signals, rather than mere topic keywords. Candidates undergo the same cross-encoder reranking with an elevated overretrieve factor ($4\times$ vs.\ $3\times$ for S1).
