@@ -10,18 +10,24 @@
 \usepackage{inconsolata}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{booktabs}
 \usepackage{enumitem}
 \usepackage{graphicx}
 \usepackage{listings}
 \usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 \usepackage{xcolor}
 \usepackage{fancyhdr}
 \usepackage{lastpage}
 \usepackage{multirow}
-\usepackage{hyperref}
 
 \setlist[itemize]{noitemsep,topsep=2pt,leftmargin=*}
 \setlist[enumerate]{noitemsep,topsep=2pt,leftmargin=*}
+
+\makeatletter
+\g@addto@macro{\UrlBreaks}{\UrlOrds}
+\makeatother
 
 % Page Count Display Configuration
 %\pagestyle{fancy}
@@ -53,35 +59,26 @@
 
 
 \author{Panagiotis Alexios Spanakis \hspace{0.8em} Maria Lymperaiou \hspace{0.8em} Giorgos Filandrianos \\
-Athanasios Voulodimos \hspace{0.8em} Giorgos Stamou \\
-National Technical University of Athens (NTUA) \\
+\textbf{Athanasios Voulodimos \quad Giorgos Stamou} \\
+School of Electrical and Computer Engineering, AILS Laboratory \\
+National Technical University of Athens \\
 \href{mailto:spanakis01@gmail.com}{\texttt{spanakis01@gmail.com}}, \href{mailto:marialymp@ails.ece.ntua.gr}{\texttt{\{marialymp,}} \href{mailto:geofila@ails.ece.ntua.gr}{\texttt{geofila\}@ails.ece.ntua.gr}} \\
 \href{mailto:thanosv@mail.ntua.gr}{\texttt{thanosv@mail.ntua.gr}}, \href{mailto:gstam@cs.ntua.gr}{\texttt{gstam@cs.ntua.gr}}}
 
+
 \begin{document}
 \maketitle
-%begin{abstract}
-	%This paper describes an agentic LLM system for SemEval-2026 Task 10 that jointly extracts psycholinguistic conspiracy markers as text spans and  classifies whether a Reddit comment endorses a conspiracy.
-	%The design separates semantic extraction from deterministic span localization and uses an Anti-Echo Chamber council to reduce false positives on reporting/debunking content.
-	%Experimental results on the  dev set show that our approach achieves a 0.24 Macro F1 (+100\% over baseline) on marker extraction (S1) and 0.79 Macro F1 (+49\% over baseline) on conspiracy detection (S2).
-    %The design separates semantic extraction from deterministic span localization and %leverages an Anti-Echo Chamber council architecture to reduce false positives on % reporting/debunking content.
-    
-%\end{abstract}
 
 \begin{abstract}
-	This paper presents a novel agentic LLM pipeline for SemEval-2026 Task 10 that jointly extracts psycholinguistic conspiracy markers and detects conspiracy endorsement.
-	Unlike traditional classifiers that conflate semantic reasoning with structural localization, our decoupled design isolates these challenges.
-	For marker extraction, we propose Dynamic Discriminative Chain-of-Thought (DD-CoT) with deterministic anchoring to resolve semantic ambiguity and character-level brittleness.
-	For conspiracy detection, an ``Anti-Echo Chamber'' architecture, consisting of an adversarial Parallel Council adjudicated by a Calibrated Judge, overcomes the ``Reporter Trap,'' where models falsely penalize objective reporting.
-	%Achieving 0.24 Macro F1 (+100\% over baseline) on S1 and 0.79 Macro F1 (+49\%) on S2, our approach establishes a robust paradigm for interpretable, psycholinguistically-grounded NLP.
+	This paper presents a novel agentic LLM pipeline for SemEval-2026 Task 10 that jointly extracts psycholinguistic conspiracy markers and detects conspiracy endorsement. Unlike traditional classifiers that conflate semantic reasoning with structural localization, our decoupled design isolates and addresses these challenges separately. For marker extraction, we propose Dynamic Discriminative Chain-of-Thought (DD-CoT) with deterministic anchoring to resolve semantic ambiguity and character-level brittleness. For conspiracy detection, an ``Anti-Echo Chamber'' architecture, consisting of an adversarial Parallel Council adjudicated by a Calibrated Judge, overcomes the ``Reporter Trap'', where models falsely penalize objective reporting. Our system achieves 0.24 Macro F1 (+100\% over baseline) on S1 and 0.79 Macro F1 (+49\%) on S2, ranking 3rd on the S1 development leaderboard and 10th on the test set (within 0.05 F1 of the top system), demonstrating that structured agentic deliberation is an effective alternative to fine-tuning for interpretable psycholinguistic NLP.
 \end{abstract}
 
 
 \section{Introduction}
 Humans have long exhibited a tendency to endorse conspiracy theories,
 particularly in contexts of uncertainty, threat, and social upheaval. Such
-beliefs are created and distributed to support human need for addressing
-existential or social issues and strengthen their sense of identity and
+beliefs are created and disseminated to address human needs for resolving
+existential or social uncertainty and to reinforce a sense of identity and
 belonging \cite{psychology-of-conspiracy, belief}. Despite their psychological
 appeal, conspiracies are associated with harmful consequences, limiting trust
 in well-documented facts and public decisions, while exacerbating political
@@ -108,7 +105,7 @@ conspiracy detection as a coarse-grained classification task, abstracting away
 from the particularities of conspiratorial discourse, thus obscuring how
 conspiratorial reasoning is formed and expressed in language. To fill this gap,
 the \textbf{SemEval 2026 Task 10: Psycholinguistic Conspiracy Marker Extraction
-    and Detection} \cite{samory-etal-2026-semeval} emphasizes the localization and categorization of linguistic
+    and Detection} \cite{samory-etal-2026-semeval, semeval-ws-2026-1} emphasizes the localization and categorization of linguistic
 markers that signal conspiratorial thinking, complementing detection with
 psychologically-backed annotations.
 
@@ -121,41 +118,24 @@ of conspiratorial thought: we propose the \textbf{Dynamic
 nature of Dynamic CoT \cite{ma2024dynamic} to perform semantic discrimination
 with deterministic verification for precise marker extraction and an
 \textbf{``Anti-Echo Chamber'' council} of contrasting perspectives to separate
-conspiracy endorsement from neutral reporting. To the best of our knowledge, our approach constitutes the \textit{first agentic LLM-based method} to combat conspiracy
+conspiracy endorsement from neutral reporting. To the best of our knowledge, our approach constitutes the \textit{first agentic LLM-based method} for conspiracy
 detection and identification of psycholinguistic features in language.
-%Specifically, [] To the best of our knowledge, we
-%introduce the \textit{first agentic LLM-based method} to combat conspiracy
-%detection and identification of psycholinguistic features in language.
+
 In short, our contributions are the following:
 \begin{itemize}
 	\item We introduce the first agentic LLM-based method for psycholinguistic conspiracy
 	      marker extraction and endorsement detection.
 	\item We propose \textbf{Dynamic Discriminative Chain-of-Thought (DD-CoT)},
-	      forcing explicit counter-arguments to deduce semantic ambiguity.
+	      forcing explicit counter-arguments to resolve semantic ambiguity.
 	\item We propose a hybrid extraction architecture decoupling semantic LLM reasoning
 	      from deterministic span localization for highly reliable character-accurate outputs.
 	\item We provide comprehensive empirical analysis including juror ablation studies,
-	      latency profiling, robustness tests, and transferability to 8B open-weights models.
+	      latency profiling, and transferability to 8B open-weights models.
 \end{itemize}
 
-%\begin{itemize}
-   % \item We introduce the first agentic LLM-based method for psycholinguistic conspiracy
-          %marker extraction and detection.
-    %\item We propose \textbf{Dynamic Discriminative Chain-of-Thought (DD-CoT)}, a
-	      %reasoning strategy that extends adaptive frameworks \cite{ma2024dynamic} by
-	      %forcing explicit counter-arguments to reduce semantic confusion.
-	%\item We propose a hybrid extraction architecture that decouples LLM semantic
-	      %decisions (what to extract / stance interpretation) from deterministic span
-	      %localization and lightweight profiling, improving reliability in
-	      %character-accurate outputs.
-	%\item We provide a comprehensive empirical analysis of key workflow components, including
-	      %computational latency profiling, robustness to hyperparameter variations, and juror ablation studies,
-	      %and demonstrate partial transfer to an 8B open-weights setting via simplified
-	      %agents.
-%\end{itemize}
 
+Our system ranked 3rd on the S1 development set and 10th on the test set (within 0.05~F1 of the top system), with ablation studies confirming the contribution of each architectural component; high-context irony and implicit stance remain the primary open challenges.
 The code for our system is available on GitHub\footnote{\url{https://github.com/panos-span/PsyChoMark_Semeval}}.
-
 
 \section{Background}
 \paragraph{Task description}
@@ -173,26 +153,36 @@ Reddit comments. More details about the dataset are provided in App.
 \ref{sec:eda}.
 
 \paragraph{Related work}
-Works on NLP conspiratorial discourse demonstrated that conspiratorial thinking manifests through detectable
-psycholinguistic signals in text \cite{Klein2019Pathways}, revealing that conspiracy theories exhibit distinctive
-narrative frameworks \cite{Tangherlini2020Automated}. These foundational works empowered the
+Early works on NLP conspiratorial discourse on Reddit introduced narrative
+motifs correlated with conspiratorial evidence \cite{online-discussions} and
+demonstrated that conspiratorial thinking manifests through detectable
+psycholinguistic signals in user language \cite{Klein2019Pathways}, with
+consequent literature revealing that conspiracy theories exhibit distinctive
+narrative frameworks that can be computationally extracted from text
+\cite{Tangherlini2020Automated}. These foundational works empowered the
 operationalization of conspiracy identification as a classification task,
-exemplified by datasets like COCO \cite{langguth2023coco} and YouNICon
+exemplified by datasets such as COCO \cite{langguth2023coco} and YouNICon
 \cite{YouNICon}. Conspiracy detection involves techniques that explicitly model
-psycholinguistic signals, such as affective tone and explanatory framing \cite{rains2023psycholinguistic,
-    language-of-conspiracy-theories, marino-etal-2025-linguistic}.
-The strong contextualization of LLMs inspired related approaches, enabling multi-label
-conspiracy classification without training demands \cite{peskine-etal-2023-definitions}. Complementarily, ConspEmoLLM \cite{liu2024conspemollm, liu2025conspemollmv2} incorporates emotion-aware LLM tuning to leverage affective signals. 
-However, recent evaluations indicate that
-LLM-based detection often relies on topical shortcuts and struggles
+psycholinguistic signals, such as affective tone, attributional cues and
+explanatory framing, in order to provide explanatory evidence of conspiracy
+presence in language \cite{rains2023psycholinguistic,
+    language-of-conspiracy-theories, marino-etal-2025-linguistic}. The strong
+contextualization that LLMs offer inspired the introduction of related
+approaches; leveraging appropriate prompting enables accurate multi-label
+conspiracy classification, eliminating training demands
+\cite{peskine-etal-2023-definitions}. Complementarily, ConspEmoLLM
+\cite{liu2024conspemollm} involves emotion-aware LLM fine-tuning on several
+conspiratorial tasks, improving detection by leveraging affective signals, with
+subsequent extensions focusing on robustness to stylistic and emotional
+variation \cite{liu2025conspemollmv2}. Recent evaluations indicate that
+LLM-based conspiracy detection often relies on topical shortcuts and struggles
 with narrative ambiguity, underscoring the need for approaches grounded in
 interpretable psycholinguistic markers \cite{pustet-etal-2024-detection,
-    classifying}.
+    classifying}. Our work departs from both monolithic prompt-only LLM detectors and emotion-aware fine-tuned models such as ConspEmoLLM~\cite{liu2024conspemollm} by introducing structured agentic deliberation: instead of relying on a single forward pass or task-specific supervision, we decompose conspiracy reasoning into discriminative span extraction and adversarial stance adjudication (\S\ref{sec:main_results} reports a +100\%/+49\% F1 lift over a zero-shot baseline of the same backbone), enabling fine-grained psycholinguistic analysis without labeled training data while remaining interpretable through per-juror evidence and per-span counter-arguments.
 
 \section{System Overview}
 
-We implement a two-stage agentic workflow: \textbf{S1} extracts
-psycholinguistic marker spans, and \textbf{S2} predicts conspiracy endorsement
+We implement a two-stage agentic workflow: our \textbf{marker extraction stage (S1)} produces labeled spans, and our \textbf{conspiracy detection stage (S2)} predicts endorsement
 conditioned on the document and the extracted markers. The design separates (i)
 LLM-mediated semantic decisions (what to extract / how to interpret stance)
 from (ii) deterministic operations that require exactness (character offsets,
@@ -334,58 +324,26 @@ flow.
 
 \subsection{Contrastive Few-shot Retrieval}
 \label{sec:contrastive-rag}
-In-context few-shot examples are retrieved for the given document (no augmentation
-is performed). A contrastive strategy is used to supply
-discriminative precedents (including hard negatives for the Reporter Trap).
-For S1, retrieval is additionally \emph{stratified}: we balance positive/negative documents and upweight underrepresented marker types (e.g., \textsc{Evidence}, \textsc{Victim}) so that prompts include instructive cases beyond the dominant \textsc{Actor}/\textsc{Action} patterns.
-For S2, hard negatives are \texttt{non} documents that nevertheless contain S1
-marker vocabulary; they match topic but oppose stance, forcing deliberation to
-attend to attribution, hedging, and framing cues rather than topical overlap.
-This targets Reporter Trap errors by construction.
-Full retrieval specification and Figure~\ref{fig:rag} are
-preserved in App.~\ref{app:rag-details}.
+In-context few-shot examples are retrieved from a vector store with reranking; we do not perform augmentation. For S1, retrieval is \emph{stratified}: we balance positive/negative documents and upweight underrepresented marker types (\textsc{Evidence}, \textsc{Victim}). For S2, retrieval is \emph{contrastive}: we explicitly mine hard negatives, i.e., \texttt{non} documents that contain S1 marker vocabulary, which match topic but oppose stance, forcing deliberation to attend to attribution, hedging, and framing cues rather than topical overlap, thereby targeting Reporter Trap errors by construction. The full retrieval specification is given in App.~\ref{app:rag-details} (Fig.~\ref{fig:rag}).
 
 \subsection{S1: Marker Extraction via DD-CoT}
 
-S1 produces a set of labeled spans by combining a self-refinement loop with a
-deterministic span locator. The graph consumes the document and retrieved
+Our marker extraction pipeline produces a set of labeled spans by combining a self-refinement loop with a deterministic span locator. The pipeline consumes the document and retrieved
 few-shot precedents, generates candidate marker \emph{strings} with labels,
 iteratively corrects them, then anchors each string to \texttt{startIndex} and
 \texttt{endIndex} in the original text.
 
-We explicitly decouple \textit{semantic identification} from \textit{span
-	indexing}. LLMs can justify category assignments but are brittle at
-character-accurate localization \cite{fu2024struggle}. We therefore (i) ask the
-LLM to emit verbatim marker strings with labels, and (ii) compute offsets with
-a deterministic locator that performs exact matching against the source text.
-This avoids ``hallucinated spans'' and off-by-one indices while preserving the
-LLM's interpretive signal \cite{ogasa-arase-2025-hallucinated}.
-
-%\paragraph{Hybrid Architecture Rationale.} We explicitly decouple \textit{semantic identification} from \textit{span
- %   indexing}. LLMs can justify category assignments but are brittle at
-%character-accurate localization \cite{fu2024struggle}. We therefore first ask the
-%LLM to emit verbatim marker strings with labels, and consequently compute offsets with
-%a deterministic locator that performs exact matching against the source text.
-%This avoids ``hallucinated spans'' and off-by-one indices while preserving the
-%LLM's interpretive signal \cite{ogasa-arase-2025-hallucinated}.
+We decouple \textit{semantic identification} from \textit{span
+	indexing} because LLMs justify category assignments well but are brittle at character-accurate localization \cite{fu2024struggle}: the LLM emits verbatim marker strings with labels, and a deterministic locator computes offsets via a multi-tier matching cascade (exact, fuzzy, and sequence-alignment fallbacks), avoiding hallucinated spans and off-by-one indices \cite{ogasa-arase-2025-hallucinated}.
 
 
 \paragraph{Dynamic Discriminative Chain-of-Thought (DD-CoT).} We introduce DD-CoT, which extends the adaptive reasoning of Dynamic CoT
-\cite{ma2024dynamic} with an explicit \emph{discrimination step}.
-\emph{discrimination step}. For each candidate span, the generator must state
+\cite{ma2024dynamic} with an explicit \emph{discrimination step}. For each candidate span, the generator must state
 (i) evidence for the chosen label and (ii) a short counter-argument against at
 least one confusable label. This forces the model to commit to a decision
 boundary in frequent confusions (e.g., \textsc{Actor} vs. \textsc{Victim},
 \textsc{Action} vs.\ \textsc{Effect}) rather than producing post-hoc
 rationales.
-
-%\paragraph{Dynamic Discriminative Chain-of-Thought (DD-CoT).} DD-CoT extends Chain-of-Thought %(CoT) reasoning %\cite{wei2022chain} with an explicit
-%\emph{discrimination step}. For each candidate span, the generator must state
-%(i) evidence %\textit{for} the chosen label and (ii) a short counter-argument \textit{against} at
-%least one confusable label. This forces the model to commit to a decision
-%boundary in frequent confusions %(e.g., \textsc{Actor} vs. \textsc{Victim},
-%\textsc{Action} vs.\ \textsc{Effect}) rather than producing post-hoc
-%rationales.
 
 \paragraph{Agents.} The Self-Refine loop comprises four sequential nodes: (a)~a DD-CoT
 \textbf{Generator} that proposes labeled marker strings; (b)~an
@@ -401,23 +359,11 @@ edits), improving controllability and enabling deterministic verification.
 
 \subsection{S2: Classification via Anti-Echo Chamber}
 
-S2 targets a specific failure mode: \textbf{Reporter Trap} false positives, in
-which topical discussion of conspiracies is conflated with endorsement (e.g.,
-reporting, debunking, satire). Single-pass classifiers often over-commit early
-and underweight stance cues \cite{wan-etal-2025-unveiling}. We therefore
-structure S2 as a deterministic \emph{Forensic Profiler} that emits
-stance-relevant warnings, a \emph{Parallel Council} that produces independent
-pro/contra analyses, and a \emph{Calibrated Judge} that aggregates votes with
-conservative confidence rules.
+Our conspiracy detection pipeline targets a specific failure mode we call the \textbf{Reporter Trap}: an input that \emph{mentions} a conspiracy without endorsing it (news reporting, debunking, or satire) is misclassified as endorsement because topical overlap with conspiratorial discourse dominates the much weaker stance signal. Concretely, ``The article claims the earth is flat'' shares vocabulary with conspiratorial assertions but lacks first-person commitment; single-pass classifiers often over-commit early and underweight stance cues \cite{wan-etal-2025-unveiling}. We therefore structure S2 as a deterministic \emph{Forensic Profiler} that emits stance-relevant warnings, a \emph{Parallel Council} that produces independent pro/contra analyses, and a \emph{Calibrated Judge} that aggregates votes with conservative confidence rules.
 
 \paragraph{Forensic Profiler.}
-Before LLM deliberation, a deterministic node computes lightweight linguistic
-signals (e.g., attribution/reporting cues, shouting/affect, question-heavy
-``JAQing'' (``just asking questions'') patterns) that are injected as
-structured warnings (full  definitions are provided in
-App.~\ref{app:forensic}).
+A deterministic node computes lightweight linguistic signals (attribution/reporting cues, shouting/affect, and question-heavy ``JAQing'' (``just asking questions'') patterns) that are injected as structured warnings into the Judge's case file (full metric definitions in App.~\ref{app:forensic}).
 
-%\paragraph{Forensic Profiler (Static Analysis).} Before LLM deliberation, a deterministic profiling node computes linguistic signatures: (i) \textit{Attribution Density}---frequency of distancing verbs (``said'', ``claimed'', ``according to'') that signal reporting vs.\ endorsement; (ii) \textit{Shouting Score}---proportion of ALL-CAPS tokens (excluding single letters and acronyms); (iii) \textit{JAQing Detection}---high question density combined with hedging terms suggesting ``Just Asking Questions'' manipulation; (iv) \textit{Agency Gap}---passive voice frequency indicating hidden hands. These metrics are injected into council prompts as contextual warnings.
 
 \paragraph{Parallel Council Architecture.} The \textbf{Anti-Echo Chamber} enforces independent assessment by four personas
 that receive identical inputs (document, S1 markers, retrieval context,
@@ -428,56 +374,16 @@ outputs: (1)~\textbf{Prosecutor} identifies evidence \emph{for} endorsement;
 literal entailment and burden-of-proof on the source text; and
 (4)~\textbf{Stance Profiler} analyzes stance cues (certainty, framing, group
 dynamics) from the original document.
-%\paragraph{Parallel Council Architecture.} The \textit{Anti-Echo Chamber} enforces %independent assessment by four personas
-%that receive identical inputs (document, S1 markers, retrieval context,
-%profiler warnings) and produce structured votes without seeing each other's
-%outputs:
-%\begin{enumerate}
-%    \item \textbf{Prosecutor:} evidence \emph{for} endorsement.
-%    \item \textbf{Defense Attorney:} evidence \emph{against} endorsement (reporting/debunking/%satire cues).
-%    \item \textbf{Literalist:} literal entailment and burden-of-proof checks.
-%    \item \textbf{Stance Profiler:} stance cues (certainty, framing, group dynamics).
-%\end{enumerate}
+
 Each juror outputs a structured vote comprising a binary verdict, confidence
-score, and textual evidence (App.~\ref{app:council-details}). This design reduces information leakage and ordering
+score, and textual evidence (App.~\ref{app:council-details}). This design avoids information leakage and ordering
 effects typical of sequential debate.
 
-%Each juror outputs:  a verdict with confidence, the primary evidence
-%supporting that verdict,  a mandatory counter-argument, and
-%uncertainty flags for known ambiguities (e.g., reporting vs.\ endorsing,
-%sarcasm). This design reduces information leakage and ordering effects typical
-%of sequential debate.
 
 \paragraph{Calibrated Judge.} The Judge aggregates votes using a weighted consensus score and applies
 conservative adjudication rules to handle council splits and forensic warnings
 (detailed in Appendix~\ref{app:council-details}). This ensures that the system
 defaults to \texttt{non} when evidence is ambiguous or contradictory.
-
-%\paragraph{Calibrated Judge.} The Judge aggregates votes from the council and applies %conservative confidence rules. We
-%compute a weighted score:
-%\begin{equation}
-%  W = \sum_{j=1}^{4} \begin{cases} +c_j & \text{if } v_j = \texttt{conspiracy} \\ -c_j & \text{if } v_j = \texttt{non conspiracy} \end{cases}  
-%\end{equation}
-%with equal persona weights, where $c_j \in [0,1]$ is each juror's confidence and $v_j$
-%its verdict. The Judge consumes the full vote transcript and summary
-%statistics (e.g., consensus and shared uncertainty flags) and can incorporate
-%lightweight contextual priors (e.g., \textsc{Conspiracy Hub} subreddit tags).
-%When the council splits ($2$--$2$), we cap confidence at $0.75$, mark the case
-%\texttt{borderline}, and default to \texttt{non conspiracy} when evidence remains
-%ambiguous. Overrides of a non-split majority are explicitly flagged.
-
-%\subsection{Contrastive Few-shot Retrieval}
-%\label{sec:contrastive-rag}
-%In-context few-shot examples are retrieved for the given document (no augmentation
-%is performed). A contrastive strategy is optionally used to supply
-%discriminative precedents (including hard negatives for the Reporter Trap).
-%For S1, retrieval is additionally \emph{stratified}: we balance positive/negative documents and upweight underrepresented marker types (e.g., \textsc{Evidence}, \textsc{Victim}) so that prompts include instructive cases beyond the dominant \textsc{Actor}/\textsc{Action} patterns.
-%For S2, hard negatives are \texttt{non} documents that nevertheless contain S1
-%marker vocabulary; they match topic but oppose stance, forcing deliberation to
-%attend to attribution, hedging, and framing cues rather than topical overlap.
-%This targets Reporter Trap errors by construction.
-%Full retrieval specification, weights, reranking, and Figure~\ref{fig:rag} are
-%preserved in Appendix~\ref{app:rag-details}.
 
 \section{Experimental Setup}
 
@@ -488,14 +394,7 @@ classifier/extractor using a single prompt (no retrieval, no self-refinement,
 no council). Our system uses the same base model but adds workflow structure
 and contrastive retrieval.
 
-\paragraph{Temperature Stratification.} To balance exploration and reproducibility (App.~\ref{app:exp-details}), we apply a differential temperature 
-strategy. The S1 Generator uses $\tau=0.7$ to encourage diverse candidate
-exploration for marker spans. Council Jurors use $\tau=0.4$ to integrate varied
-rationales with consistent verdicts. Deterministic nodes  (Critic,
-Refiner,  Judge) use $\tau=0.0$ to ensure consistent, reproducible auditing
-and final adjudication. % new
-
-% During early development we used Claude Sonnet 4.5 for rapid prompt iteration.
+\paragraph{Temperature Stratification.} We apply a differential temperature strategy to balance exploration and reproducibility: $\tau=0.7$ for the S1 Generator (diverse candidate exploration), $\tau=0.4$ for Council Jurors (varied rationales with consistent verdicts), and $\tau=0.0$ for deterministic auditing nodes (Critic, Refiner, Judge). Full justification is in App.~\ref{app:exp-details}.
 
 \paragraph{Contrastive sampling.} Retrieval draws in-context examples from a vector store with reranking, with an
 emphasis on \emph{contrast} rather than similarity for S2. In particular, we
@@ -504,23 +403,23 @@ S1 markers) to expose the stance boundary that drives Reporter Trap false
 positives.
 
 \paragraph{GEPA optimization.} Prompt templates are optimized with GEPA \cite{agrawal2025gepa}
-(App.~\ref{sec:gepa-details}). S1 fitness uses macro $F_2$
+(App.~\ref{sec:gepa-details}). We use a population of 20--30 prompts over
+40--80 generations with tournament size 3, mutation rate 0.2, and GPT-5.2 for
+semantic crossover and reflective mutation. S1 fitness is macro $F_2$
 (\S\ref{sec:gepa-fitness}); S2 fitness uses \textbf{Gradient Consensus}
-(vote-ratio scoring) to distinguish between weak and strong consensus, guiding the
-optimizer toward robust prompts. Full hyperparameters are detailed in
+(vote-ratio scoring), where optimal prompts maximize the ratio of jurors
+agreeing with the ground truth label. This continuous reward signal
+distinguishes between weak (2--2) and strong (4--0) consensus, guiding the
+optimizer toward robust prompts. Hyperparameters are summarized in
 Table~\ref{tab:gepa-config}.
+
 All agent nodes are instantiated via GPT-5.2 with schema-constrained generation via PydanticAI
 \cite{pydanticai2024} and are orchestrated via LangGraph \cite{langgraph2024};
-full implementation and preprocessing details are in
+full implementation, preprocessing details, and reproducibility notes (multi-run validation for $\approx \pm 1.5\%$ F1 variance from MoE non-determinism) are in
 App.~\ref{app:exp-details}.
 
-\paragraph{Reproducibility.} We apply multi-run validation during system development to account for minor
-performance fluctuations ($\approx \pm 1.5\%$ F1) inherent in LLM inference
-non-determinism (see Appendix~\ref{app:exp-details} for a discussion on MoE
-stability).
-
 \paragraph{Evaluation.}
-For S1, we report the Macro Overlap F1 score, where an extracted span is considered a true positive if its character-level Intersection over Union (IoU) with a gold span is $\ge 0.5$. For S2, we report the weighted F1-score (conspiracy vs.\ non) and accuracy; additional diagnostics (false positive rate on hard negatives) are reported where relevant.
+For S1, we report the official task metric, Macro Overlap F1, where an extracted span is considered a true positive if its character-level Intersection over Union (IoU) with a gold span is $\ge 0.5$. For S2, we report the macro-averaged F1 score; \textit{Can't Tell} documents are excluded per task convention as S2 evaluation is binary. Additional diagnostics (false positive rate on hard negatives) are reported where relevant.
 
 
 \section{Results and Analysis}
@@ -532,112 +431,43 @@ For S1, we report the Macro Overlap F1 score, where an extracted span is conside
 	\small
 	\setlength{\tabcolsep}{4pt}
 	\begin{tabular}{@{}l l r r r@{}}
-		\hline
+		\toprule
 		\textbf{Task} & \textbf{Split}      & \textbf{Baseline F1} & \textbf{Agentic} & \textbf{$\Delta$} \\
-		\hline
+		\midrule
 		\multirow{2}{*}{S1}
 		              & Dev (\textit{100})  & 0.12                 & \textbf{0.24}    & +100\%            \\
 		              & Test (\textit{938}) & --                   & \textbf{0.21}    & --                \\
-		\hline
+		\midrule
 		\multirow{2}{*}{S2}
 		              & Dev (\textit{100})  & 0.53                 & \textbf{0.79}    & +49\%             \\
 		              & Test (\textit{938}) & --                   & \textbf{0.75}    & --                \\
-		\hline
+		\bottomrule
 	\end{tabular}
-	\caption{Main results (macro F1). Baseline: zero-shot GPT-5.2. Document counts in parentheses.}
+	\caption{Main results (macro F1). Baseline: zero-shot GPT-5.2, evaluated on the dev set only (official Test-set predictions were submitted once with the full pipeline). Document counts in parentheses.}
+
 	\label{tab:main_results}
 \end{table}
-
-
-
-%For context, our results significantly exceed the organizer's starter-pack
-%overlap and weighted F1 baselines (see Appendix~\ref{app:exp-details} for
-%comparability notes).
-
-
-%For context, the task organizers' starter-pack baselines report
-%\textasciitilde0.15 \emph{overlap} $F_1$ for S1 and \textasciitilde0.76
-%\emph{weighted} $F_1$ for S2 on the dev set
-%\cite{semeval26_task10_starter_pack}; these scores are not directly comparable
-%to the macro-$F_1$ numbers in Table~\ref{tab:main_results}.
-
-%\textbf{S1: Marker Extraction.} The baseline underperforms because it must
-%jointly (i) decide category membership and (ii) produce exact span strings and
-%offsets in one step. The agentic pipeline improves dev macro F1 from 0.12 to
-%0.24 (+100\%) by separating these responsibilities and iterating with targeted critique
-%and deterministic verification. Error analysis revealed that DD-CoT specifically improves %agency detection (Table~\ref{tab:combined_ablation}, S1 DD-CoT), 
-%as the ``Actor'' F1 gain (+2.7 points/ +10.3\%) stems from better disambiguation of semantic agents in passive structures.
-
-%\textbf{S2: Conspiracy Detection.} The dev macro F1 gain (from 0.53 to 0.79, +49\%) is driven %by improved handling of stance ambiguity. In particular,
-%council deliberation increases recall compared to a single-agent baseline %(Table~\ref{tab:combined_ablation}, row ``S2 Parallel Council''),
-%while contrastive retrieval reduces Reporter Trap false positives by supplying topic-matched %non-endorsement
-%examples.
-
-
-%\paragraph{Open-Weights Models.} To test portability, we evaluated an 8B-scale open-weights %model using
-%simplified agentic schemas. While lower tool-calling fidelity necessitated
-%reducing the complexity of the DD-CoT and Council components, our architecture
-%still produced meaningful gains, demonstrating that core agentic reasoning
-%transfers effectively to smaller models (see Appendix~\ref{app:open-weights}
-%for detailed evaluation). % -> new
-
-
-
-%\begin{table}[h!]
-%    \centering
-%    \small
-%    %\setlength{\tabcolsep}{3pt}
-%    \begin{tabular}{p{2.6cm}p{1.2cm}p{0.5cm}p{0.4cm}r}
-%        \hline
-%        \textbf{Component/ Change}       & \textbf{Metric} & \textbf{Base} & \textbf{New} & %\textbf{$\Delta$} \\
-  %      \hline
-   %     \multicolumn{5}{c}{\textbf{S1: Conspiracy Marker Extraction}} \\
-    %    \hline
-    %    \textbf{Self-Refine}                                                                  %              \\(Gen + Critic + Refiner) & Macro F1  & 0.173 & 0.240 & +0.067 \\
-     %   \textbf{DD-CoT}                                                                       %              \\(agency) & Actor F1  & -- & -- & +2.7 pts \\
-     %   \textbf{Retrieval}                                                                    %              \\(naive vs none) & Macro F1 & 0.329 & 0.296 & $-$0.033 \\ 
-     %   \hline
-    %    \multicolumn{5}{c}{\textbf{S2: Conspiracy Detection}} \\
-    %    \hline
-    %    \textbf{Parallel Council}                                                             %              \\(vs single) & Recall & 0.481 & 0.560 & +0.079 \\
-    %    \textbf{Judge}                                                                        %              \\(vs majority vote) & Macro F1 & 0.638 & 0.681 & +0.043 \\
-    %    \textbf{Contrastive FS} & FP rate   & 0.160         & 0.080        & $-$50\%           \\
-    %    \hline
-    %\end{tabular}
-    %\caption{Combined ablation summary (dev set). ``Base''/``New'' correspond to the paired settings reported in the original ablation tables (see Appendix~\ref{app:ablation-full} for full tables and narratives).}
-    %\label{tab:combined_ablation}
-%\end{table}
-
-%\subsection{Ablation Studies}
-%\label{sec:ablation}
-
-%The primary ablation findings are consolidated into a single compact table;
-%full breakdowns are preserved in Appendix~\ref{app:ablation-full}.
-
 
 \begin{table*}[t!]
 	\centering
 	\small
-	%\setlength{\tabcolsep}{3pt}
-	%\resizebox{\linewidth}{!}{
-	\begin{tabular}{p{2.2cm}p{6.8cm}lrrr}
-		\hline
-& \textbf{Component / Change}         & \textbf{Metric} & \textbf{Baseline} & \textbf{Agentic} & \textbf{$\Delta$} \\
-		\hline
-		%\rowcolor{gray!10} \multicolumn{5}{l}{\textit{Subtask 1: Marker Extraction}}                                     \\
-\multirow{3}{*}{\textit{Subtask 1:}} & \textbf{Self-Refine} (Audit loop)   & Macro F1        & 0.173             & 0.240            & +0.067            \\
- & \textbf{DD-CoT} (Perpetrator vs. Victim Discrimination)  & \textsc{Actor} F1        & 0.263             & 0.290            & +0.027            \\
-\multirow{1}{*}{\textit{\newline Marker Extraction}} &\textbf{Contextual Retrieval} (Dynamic few-shot examples)       & Macro F1        & 0.243             & 0.240            & $-$0.003          \\
-		\hline
-%\rowcolor{gray!10} \multicolumn{5}{l}{\textit{Subtask 2: Conspiracy Detection}}                                  \\
-\multirow{2}{*}{\textit{Subtask 2:}} & \textbf{Parallel Council} (Debate)  & Recall          & 0.481             & 0.560            & +0.079            \\
-& \textbf{Prosecutor} (Evidence for Conspiracy)        & F1 Score        & 0.680             & 0.795            & +0.115            \\
-\multirow{1}{*}{\textit{Conspiracy}} & \textbf{Calibrated Judge} (Final Decision Logic) & Macro F1        & 0.638             & 0.681            & +0.043            \\
-\multirow{1}{*}{\textit{Detection}}& \textbf{Contrastive Retrieval} (Suppression of False Positives)      & FP Rate         & 0.160             & 0.080            & $-$0.080          \\
-		\hline
+	\begin{tabular}{p{2.4cm}p{6.6cm}lrrr}
+		\toprule
+		\textbf{Subtask} & \textbf{Component / Change} & \textbf{Metric} & \textbf{Baseline} & \textbf{Agentic} & \textbf{$\Delta$} \\
+		\midrule
+		\multirow{3}{=}{\textit{S1: Marker Extraction}}
+		 & \textbf{Self-Refine} (Audit loop)                              & Macro F1          & 0.173 & 0.240 & +0.067   \\
+		 & \textbf{DD-CoT} (Perpetrator vs. Victim discrimination)        & \textsc{Actor} F1 & 0.263 & 0.290 & +0.027   \\
+		 & \textbf{Contextual Retrieval} (Dynamic few-shot examples)      & Macro F1          & 0.243 & 0.240 & $-$0.003 \\
+		\midrule
+		\multirow{4}{=}{\textit{S2: Conspiracy Detection}}
+		 & \textbf{Parallel Council} (Debate)                             & Recall   & 0.481 & 0.560 & +0.079   \\
+		 & \textbf{Prosecutor} (Leave-One-Out: w/o vs.\ Full Council)     & F1 Score & 0.680 & 0.795 & +0.115   \\
+		 & \textbf{Calibrated Judge} (Final decision logic)               & Macro F1 & 0.638 & 0.681 & +0.043   \\
+		 & \textbf{Contrastive Retrieval} (Suppression of false positives)& FP Rate  & 0.160 & 0.080 & $-$0.080 \\
+		\bottomrule
 	\end{tabular}
-	%}
-	\caption{\textbf{Ablation Summary (dev)} to isolate the impact of core architectural nodes. \textbf{DD-CoT} significantly improves \textsc{Actor} identification by disambiguating agency (detecting perpetrators vs. victims). \textbf{Parallel Council} and \textbf{Contrastive Retrieval} combine to suppress the ``Reporter Trap,'' where topical discussion of conspiracy is misclassified as endorsement.}
+	\caption{\textbf{Ablation summary (dev).} Isolated impact of core architectural nodes. \textbf{DD-CoT} significantly improves \textsc{Actor} identification by disambiguating agency (perpetrators vs. victims). \textbf{Parallel Council} and \textbf{Contrastive Retrieval} combine to suppress the ``Reporter Trap,'' where topical discussion of conspiracy is misclassified as endorsement.}
 	\label{tab:combined_ablation}
 \end{table*}
 
@@ -648,158 +478,72 @@ Table~\ref{tab:main_results} compares our workflow against the zero-shot baselin
 (Dev F1 $0.12 \rightarrow 0.24$) by separating marker extraction from verification, while S2 gains ($0.53 \rightarrow 0.79$) 
 are driven by the Council's ability to resolve stance ambiguity. Specifically, DD-CoT improves \textsc{Actor} identification (+2.7 F1) 
 by disambiguating agency in passive structures, and the Council-Judge architecture significantly increases recall (+16.4\%) while suppressing 
-false positives via contrastive retrieval.
+false positives via contrastive retrieval. In the official evaluation, our system ranked 3rd on the S1 development set and 10th on the test set (within $0.05~F1$ of the top system); for S2 it placed 13th and 24th, respectively. Simplified agentic schemas also transfer to the open-weights Qwen-3-8B-Instruct backbone with core reasoning preserved, and structured distillation of council deliberation traces is a natural next step (App.~\ref{app:open-weights}).
 
-\paragraph{Open-Weights Models.} We evaluate an 8B-scale open-weights model (Qwen-3-8B-Instruct). While the complex reasoning of the full pipeline exceeded the model's tool-calling capabilities, deploying simplified agentic schemas still produced meaningful gains, demonstrating that core agentic reasoning transfers effectively to smaller models (App.~\ref{app:open-weights}).
+
+% \paragraph{Open-Weights Models.} To test portability, we evaluate an 8B-scale open-weights model (Qwen-3-8B-Instruct). We find that the complex discriminative reasoning logic of the full DD-CoT exceeds the model's capabilities, causing PydanticAI to fail as strict schema enforcement rules are not met.  By reducing the DD-CoT and Council components into simplified agentic schemas, our architecture still produces meaningful gains, demonstrating that core agentic reasoning transfers effectively to smaller models (App.~\ref{app:open-weights}).
 
 \paragraph{Ablation Analysis.}
 
 Table~\ref{tab:combined_ablation} highlights three takeaways. \textbf{Iteration
-	matters:} Self-Refine yields the largest S1 gain (+6.7\% F1) by correcting
+	matters:} Self-Refine yields the largest S1 gain (+6.7 F1 points, +38.7\% relative) by correcting
 boundaries. \textbf{Discrimination improves agency:} DD-CoT overcomes
-subject-position bias for a +2.7\% \textsc{Actor} F1 gain. \textbf{Architecture synergy is
-	critical:} In S2, contrastive retrieval halves the false-positive rate,
-while the Parallel Council improves recall (+16\%). Leave-One-Out analysis
-(Figure~\ref{fig:s2_juror_ablation}, Appendix~\ref{app:s2-details}) confirms
-this synergy: removing the \textbf{Prosecutor} drops F1 by $\sim$11\%,
-while removing skeptical jurors harms precision. Finally, \textbf{Contextual Retrieval}
-boosted generalization on the Test set significantly (+10.5\% F1) despite
-negligible impact on Dev.
-
-
-%Table~\ref{tab:combined_ablation} highlights three takeaways. \textbf{Iteration matters:} Self-Refine yields the largest S1 gain (+6.7\% F1), correcting boundary errors. \textbf{Discrimination improves agency:} DD-CoT overcomes subject-position bias, improving \textsc{Actor} F1 (+2.7\%) by distinguishing active semantic agents from passive subjects. \textbf{Architecture synergy is critical:} In S2, contrastive retrieval halves the false-positive rate ($-$50\%) by providing non-conspiratorial context, while the Parallel Council improves recall (+16\%). Our Leave-One-Out analysis (Figure~\ref{fig:s2_juror_ablation},  Appendix~\ref{app:s2-details}) confirms this synergy: removing the \textbf{Prosecutor} drops F1 by $\sim$11\% (loss of signal), while removing the \textbf{Profiler} or skeptical jurors degrades precision. The peak 0.795 F1 score requires the full deliberative council. Note that while \textbf{Contextual Retrieval} showed negligible impact on Dev ($-0.3\%$), it boosted generalization on the Test set significantly ($0.19 \rightarrow 0.21$ Macro F1, $+10.5\%$), proving essential for unseen data.
-
-
-
-%\paragraph{Notable findings.}
-%Table~\ref{tab:combined_ablation} supports three main takeaways. First,
-%\textbf{iteration matters}: the Self-Refine loop yields the largest S1 gain
-%(+0.067 macro F1, +38.7\%), consistent with the critic's role in correcting
-%boundary errors and recovering missed spans. Second, \textbf{discrimination
-%	helps where labels are adjacent}: DD-CoT improves \textsc{Actor} identification
-%(+2.7 Actor F1, +10.3\%) by overcoming \textbf{subject-position bias}. Standard
-%models often conflate grammatical subjects (e.g., \textit{``The public was
-%	deceived''}) with semantic agents. DD-CoT's discriminative step forces the
-%model to evaluate \emph{agency}—active intent vs.\ passive experience—correctly
-%reassigning these passive subjects to \textsc{Victim} and identifying the true
-%hidden perpetrator. Third, \textbf{Reporter Trap mitigation requires contrast}:
-%on S2, the Parallel Council increases recall from 0.481 to 0.560 (+16.4\%),
-%while contrastive retrieval halves the false-positive rate on dev hard
-%negatives from 0.160 to 0.080 (-50\%), indicating that topic-similar
-%non-endorsement examples effectively suppress spurious endorsement cues.
-%Finally, \textbf{architecture synergy} is critical: our Leave-One-Out analysis
-%(see Appendix~\ref{tab:s2_juror_ablation}) shows that removing the
-%\textbf{Prosecutor} causes an $\sim$11\% F1 drop, losing primary signal
-%detection. Conversely, removing \textbf{skeptical roles} (Defense, Literalist)
-%degrades precision, while the \textbf{Profiler} contributes $\sim$5\% by
-%grounding decisions in subreddit priors. The peak 0.795 F1 score is thus only
-%achievable through the concurrent deliberation of all four personas.
-
-% ---
-%Qualitative analysis (Appendix~\ref{app:qualitative-examples}) demonstrates that the agentic pipeline succeeds by disentangling agency and mitigating the ``Reporter Trap.'' While baseline models frequently mistake grammatical subjects for semantic agents (e.g., mislabeling victims of manipulation as perpetrators), the DD-CoT Generator identifies the true \textsc{Actor} by explicitly reasoning about semantic roles. Furthermore, Contrastive Retrieval and the Defense Attorney's analysis of attribution verbs (\textit{claimed}, \textit{reported}) successfully distinguish the neutral mention of a conspiracy from its endorsement. However, challenges persist in high-context irony; conflict between a Literalist juror's face-value interpretation and the Profiler's capture of sarcasm often results in a conservative \texttt{non-conspiracy} verdict by the Judge to prevent over-prediction.
-% ---
-
-%As shown in Table~\ref{tab:s5_qualitative}, 
-
-%\paragraph{Qualitative Analysis.} As shown in Appendix~\ref{app:qualitative-examples}, the agentic pipeline succeeds by disentangling agency and mitigating the ``Reporter Trap.'' While baseline models frequently mistake grammatical subjects for semantic agents (e.g., mislabeling victims of manipulation as perpetrators), the DD-CoT Generator identifies the true \textsc{Actor} by explicitly reasoning about semantic roles. Furthermore, Contrastive Retrieval and the Defense Attorney's analysis of attribution verbs (\textit{claimed}, \textit{reported}) successfully distinguish the neutral mention of a conspiracy from its endorsement. However, challenges persist in high-context irony.
+subject-position bias for a +2.7 point (+10.3\%) \textsc{Actor} F1 gain. \textbf{Architecture synergy is
+	critical:} In S2, contrastive retrieval halves the false-positive rate ($-$50\%), while the Parallel Council lifts recall by 7.9 points (+16.4\%); leave-one-out analysis (Fig.~\ref{fig:s2_juror_ablation}, App.~\ref{app:s2-details}) shows that removing the \textbf{Prosecutor} drops F1 by $\sim$11\% and removing skeptical jurors harms precision, so persona diversity (not panel size) drives performance. A majority-vote baseline reaches only F1 0.638 with 66.7\% of 2--2 splits unresolved, whereas the Calibrated Judge resolves all deadlocks (F1 0.681). Finally, on the held-out test set, removing \textbf{Contextual Retrieval} drops S1 Macro F1 from 0.21 to 0.19 ($-$10.5\% relative), despite a negligible Dev delta ($-0.003$), suggesting that retrieval primarily aids out-of-distribution generalization.
 
 \paragraph{Qualitative Analysis.} As detailed in App.~\ref{app:qualitative-examples}, the agentic pipeline succeeds by
-disentangling agency and mitigating the ``Reporter Trap.'' Unlike baselines that conflate grammatical
-subjects with semantic agents, DD-CoT correctly identifies \textsc{Actor}s via semantic roles.
-For S2, contrastive retrieval and defensive parsing of attribution verbs (\textit{claimed}, \textit{reported})
-prevent false endorsement on neutral reporting. However, high-context irony remains challenging.
+disentangling agency and mitigating the ``Reporter Trap.'' Two minimal cases illustrate the pattern: in \textit{``The public was manipulated by the media\ldots''}, the baseline labels \textit{the public} as \textsc{Actor} (subject-position bias), while DD-CoT's counter-argument step reassigns the role to \textsc{Victim} and labels \textit{the media} as \textsc{Actor}; in \textit{``The article claims the earth is flat,''} the baseline flags endorsement, while contrastive retrieval and the Defense Attorney's parsing of attribution verbs (\textit{claims}, \textit{reports}) produce a \texttt{non} verdict. However, high-context irony remains challenging: the Literalist's face-value reading and the Profiler's irony cues conflict, and the Judge defaults to \texttt{non}; we discuss discourse-level remedies in Limitations.
 
-\paragraph{Sensitivity and Robustness.} Temperature stratification prevents Council mode collapse (redundant arguments at $\tau\!=\!0.0$) and preserves boundary enforcement (erosion at $\tau\!>\!0.7$ for Judge/Critic). The Judge is resistant to relaxed thresholds, though lowering the override threshold slightly increases false positives.
+\paragraph{Test-set Generalization.} The dev$\to$test gap is asymmetric: S1 drops $0.24\to0.21$ ($-12.5\%$ relative) while S2 holds at $0.79\to0.75$ ($-5\%$). We attribute the larger S1 drop to the IoU$\,\geq\,0.5$ overlap criterion, which is sensitive to lexical and stylistic variation across the broader test distribution and amplifies boundary noise that the Self-Refine loop only partially absorbs; the smaller S2 drop reflects that document-level stance cues (attribution verbs, hedging) transfer more uniformly than character-level boundaries. Consistent with this, removing contextual retrieval costs $-10.5\%$ relative on test but is neutral on dev (\S\ref{sec:main_results}), confirming retrieval's role as an out-of-distribution stabilizer rather than an in-distribution boost.
+
 \paragraph{Computational Cost and Latency.}
-%We profile both baseline and full-pipeline configurations on a 20-document dev set sample to %quantify the overhead introduced by our agentic workflow (Table~\ref{tab:latency}).
-%The S1 Self-Refine loop (Generator $\to$ Critic $\to$ Refiner) arises as the primary cost driver, consuming $\sim$2.9$\times$ more tokens than the generator alone and tripling wall-clock latency ($10.5$s $\to$ $30.2$s per document). Similarly, the S2 Parallel Council (4 jurors $+$ Judge) increases per-document cost by $\sim$7.6$\times$ in tokens and $6.4\times$ in latency relative to a single-agent baseline ($4.6$s $\to$ $29.1$s). Crucially, both agentic configurations maintain a fixed number of calls, meaning latency scales linearly with document length but is otherwise \emph{constant per document} — a key advantage over recursive generation schemes that scale unboundedly.
+We profile baseline and full-pipeline overhead on a 20-document dev sample (Table~\ref{tab:latency}). The S1 Self-Refine loop triples latency ($10.5$s $\to$ $30.2$s/doc, $2.9\times$ tokens); the S2 Parallel Council adds $6.4\times$ latency ($4.6$s $\to$ $29.1$s) and $7.6\times$ tokens. Latency remains \emph{constant per document} because the call count is fixed. This 2.9--7.6$\times$ overhead buys the +100\%/+49\% F1 gains above, and two orthogonal directions can reduce it: (i)~Profiler-gated \textbf{dynamic routing} bypassing the Council on clear-cut documents, and (ii)~\textbf{trace distillation} of council transcripts into a single-pass classifier.
+Concretely, dynamic routing would skip Council deliberation for documents where deterministic Forensic Profiler signals (e.g., high attribution density with no affect markers) already establish a confident non-endorsement verdict, reducing the $6.4\times$ S2 overhead for a subset of inputs without sacrificing accuracy on ambiguous cases.
+Trace distillation would use labeled council transcripts as teacher signal to train a compact model that replicates multi-agent reasoning in a single forward pass, making the deliberative approach viable for high-volume, latency-sensitive deployments without reliance on a proprietary backbone.
 
-We profile baseline and full-pipeline overhead on a 20-document dev
-sample (Table~\ref{tab:latency}). The S1 Self-Refine loop triples latency ($10.5$s $\to$ $30.2$s/doc)
-and increases token use $2.9\times$. For S2, the Parallel Council adds $6.4\times$ latency ($4.6$s $\to$ $29.1$s)
-and $7.6\times$ tokens relative to a single-agent baseline. Crucially, by fixing the number of LLM calls,
-latency remains \emph{constant per document}, avoiding the unbounded scaling of recursive generation schemes.
 
-\begin{table}[t!]
+
+\begin{table}[htbp]
 	\centering
 	\small
 	%\setlength{\tabcolsep}{3pt}
 	\begin{tabular}{p{0.1cm}p{3.7cm}p{0.8cm}p{0.6cm}r}
-		\hline
+		\toprule
 		\textbf{} & \textbf{Configuration} & \textbf{Latency} & \textbf{Tokens} & \textbf{Calls} \\
-		\hline
+		\midrule
 		\multirow{2}{*}{S1} & Baseline (Generator only) & 10.5s & 2{,}549 & 1.0 \\
 		                    & Full Graph (Self-Refine)   & 30.2s & 7{,}986 & 2.5 \\
-		\hline
+		\midrule
 		\multirow{2}{*}{S2} & Baseline (Single Agent)       & 4.6s  & 1{,}665 & 1.0 \\
 		                    & Full Graph (Council + Judge)   & 29.1s & 12{,}627 & 5.0 \\
-		\hline
+		\bottomrule
 	\end{tabular}
 	\caption{Per-document average latency and token usage profiled on 20 dev documents. All calls are LLM API invocations; baseline is a single zero-shot prompt.}
 	\label{tab:latency}
 \end{table}
 
-
-%We conduct a qualitative analysis (see Appendix~\ref{app:qualitative-examples}
-%for details) identifying key performance drivers and failure modes. DD-CoT
-%effectively disentangles agency in passive constructions, correctly reassigning
-%grammatical subjects to semantic victims. For S2, contrastive retrieval and
-%defensive juror roles mitigate the ``Reporter Trap'' by distinguishing between
-%reporting and endorsement. Challenges remain in resolving high-context irony
-%and sarcasm, where conflicting juror signals occasionally lead to conservative
-%non-endorsement verdicts.
-
-
-%\paragraph{Notable findings.}
-%Table~\ref{tab:combined_ablation} supports three main takeaways. First,
-%\textbf{iteration matters}: the Self-Refine loop yields the largest S1 gain
-%(+0.067 macro F1), consistent with the critic's role in correcting boundary
-%errors and recovering missed spans. Second, \textbf{discrimination helps where
-%    labels are adjacent}: DD-CoT improves \textsc{Actor} identification (+2.7 Actor
-%F1), matching the observed confusion patterns in early development. Third,
-%\textbf{Reporter Trap mitigation requires contrast}: on S2, the Parallel
-%Council increases recall from 0.481 to 0.560, while contrastive retrieval
-%halves the false-positive rate on dev hard negatives from 0.160 to 0.080,
-%indicating that topic-similar non-endorsement examples effectively suppress
-%spurious endorsement cues.
-
-%\paragraph{Qualitative error patterns.} Remaining failures concentrate in a small set of %phenomena: (i) boundary drift
-%and role swaps (e.g., \textsc{Actor}/\textsc{Victim}) in S1, and (ii) implicit
-%stance, quotation, and sarcasm in S2. Examples and expanded analysis are
-%provided in Appendix~\ref{app:qualitative}.
-
-%Additional ablation narratives, retrieval analysis, and the full qualitative
-%error analysis are provided in Appendix~\ref{app:ablation-full} and
-%Appendix~\ref{app:qualitative}.
-
 \section{Conclusion}
 
-We demonstrate that \textbf{workflow structure} can effectively substitute for model scaling or data curation in psycholinguistic NLP. Our two-stage agentic architecture decouples semantic reasoning from deterministic operations. For \textbf{S1}, DD-CoT self-refinement with a deterministic locator doubles baseline performance by resolving semantic ambiguity and character-level brittleness. For \textbf{S2}, an adversarial Parallel Council and Calibrated Judge, paired with contrastive retrieval, suppress ``Reporter Trap'' false positives while increasing recall. Replacing monolithic prediction with persona-driven structured deliberation is a highly effective paradigm for subjective NLP tasks.
+We demonstrate that \textbf{structured agentic deliberation} is an effective alternative to fine-tuning for interpretable psycholinguistic NLP: DD-CoT with deterministic anchoring doubles S1 Dev F1 (0.12$\to$0.24, Test 0.21), while an adversarial Parallel Council suppresses ``Reporter Trap'' false positives for S2. This approach recovers performance lost to task complexity without additional supervision or labeled training data; its effectiveness hinges on persona diversity and retrieval quality. Future gains may come from Profiler-gated dynamic routing and distillation of council traces. Given dual-use risks, we recommend human-in-the-loop oversight for deployment.
 
-%In this work, we demonstrate that \textbf{workflow structure} can effectively substitute
-%for model scaling or data curation in challenging psycholinguistic NLP settings. We
-%contribute a two-stage agentic architecture that decouples semantic LLM reasoning from
-%deterministic operations. For \textbf{S1 (Marker Extraction)}, we introduce a
-%self-refinement loop powered by Dynamic Discriminative Chain-of-Thought (DD-CoT) and a
-%deterministic locator. This decomposition doubles baseline performance by explicitly
-%addressing dual failure modes: semantic ambiguity (e.g., distinguishing active
-%perpetrators from passive victims) and the brittleness of LLMs in character-accurate
-%span extraction. For \textbf{S2 (Conspiracy Detection)}, we design an ``Anti-Echo
-%Chamber'' architecture---a Parallel Council of diverse personas aggregated by a
-%Calibrated Judge. Paired with contrastive few-shot retrieval, this deliberative method
-%mitigates the ``Reporter Trap,'' significantly reducing false positives on texts that
-%merely discuss conspiracies topically, while improving overall recall. Furthermore, we
-%establish that these agentic structuring principles remain effective when transferred
-%to smaller 8B open-weights models. Finally, while our approach resolves common
-%analytical shortcuts, the remaining errors map the boundary of current capabilities:
-%stance inference under deep pragmatic ambiguity (such as complex quotation, sarcasm,
-%and weakly entailed endorsement) remains an open challenge requiring broader discourse
-%context.
+\typeout{BODY_END_PAGE=\thepage}
+
+
+\section*{Acknowledgements}
+This work was carried out within the framework of the Pharos AI Factory project, funded by the European High-Performance Computing Joint Undertaking (EuroHPC JU) under Grant Agreement No. 101234269 as part of the Horizon Europe and by the Greek Public Investments Program programme.
 
 \section*{Limitations}
 
+Our pipeline operates purely via prompting and agentic orchestration; we did not fine-tune any model on the task data, which could improve both marker boundary precision and stance classification through task-specific supervision.
+We also did not incorporate discourse-level context such as thread structure, sibling replies, parent comments, subreddit-level norms, or user posting history, which could help disambiguate irony, sarcasm, and implicit stance (our primary failure modes). Architecturally, such signals could be injected as additional input fields in each juror's prompt, with an estimated $\sim$1.5$\times$ token overhead per Council call.
+Additionally, we did not perform systematic human evaluation of extracted markers; such analysis could quantify interpretability gains beyond automated overlap metrics.
+While we experimented with a single open-weights model (Qwen-3-8B), we did not explore ensembles of heterogeneous models or structured distillation of council deliberation traces, a technique that could train a compact model to replicate multi-agent reasoning in a single forward pass, reducing both cost and proprietary backbone dependence.
+Our ablation studies are evaluated on the 100-document official dev set, which limits statistical power for sub-class effects; the $\approx \pm 1.5\%$ F1 variance from MoE non-determinism (App.~\ref{app:exp-meta}) further bounds the precision of small deltas, and we report relative trends rather than significance-tested differences.
+Finally, our reliance on a proprietary GPT-5.2 backbone introduces cost and reproducibility risks: full-pipeline inference on the 938-document test set incurs non-trivial API expense, and provider-side model updates may shift outputs without notice. We did not investigate data augmentation (e.g., synthetic hard negatives or paraphrase-based span perturbations) to improve robustness to the lexical and stylistic variation observed between dev and test sets.
 
-\section*{Acknowledgments}
+
+
+
 
 \typeout{MAIN_BODY_LAST_PAGE=\thepage}
 \bibliography{custom}
@@ -880,7 +624,7 @@ deterministic anchors that constrain LLM reasoning.
 \section{Contrastive Few-shot Retrieval Details}
 \label{app:rag-details}
 Both subtasks employ dynamic few-shot retrieval from ChromaDB \cite{chromadb2023} vector collections.
-We retrieve \textbf{in-context few-shot examples} relevant to the given document to guide the model's decision (we do not perform augmentation). We implement \textbf{Contrastive In-Context Learning} \cite{chia2023contrastive}, a retrieval strategy that prioritizes discriminative examples over merely similar ones. Both S1 and S2 employ contrastive retrieval mechanisms, though optimized for different discriminative objectives.
+We retrieve \textbf{in-context few-shot examples} relevant to the given document to guide the model's decision (we do not perform augmentation). Inspired by Contrastive Chain-of-Thought prompting \cite{chia2023contrastive}, which enhances reasoning by supplying both valid and invalid demonstrations, we implement a contrastive retrieval strategy that prioritizes discriminative examples over merely similar ones. Both S1 and S2 employ contrastive retrieval mechanisms, though optimized for different discriminative objectives.
 
 
 
@@ -901,8 +645,8 @@ addresses both label imbalance and annotation granularity mismatches.
 The overall contrastive retrieval strategy is illustrated in
 Figure~\ref{fig:rag}.
 
-\paragraph{S2: Hard Negative Mining \cite{karpukhin-etal-2020-dense}.}
-For conspiracy detection, we implement a \textbf{pure contrastive strategy} via hard negative mining. Standard similarity-based retrieval retrieves similar-looking documents, causing the model to conflate \textit{topical similarity} with \textit{stance endorsement}, a failure mode we term the Reporter Trap. To explicitly teach the boundary, we retrieve documents labeled ``non-conspiracy'' \textit{that contain S1 markers}. These are \textit{hard} negatives because they share conspiracy-related vocabulary (actors, actions, evidence mentions) but differ in stance (reporting, debunking, or mocking). By forcing the model to compare structurally similar examples with opposite labels, we compel it to attend to \textbf{stance cues} such as attribution verbs (``claims that'', ``alleges''), hedging markers (``supposedly'', ``according to''), and framing signals (``debunked'', ``baseless''), rather than mere topic keywords. Retrieved precedents follow case-law templates (e.g., ``Acquitted because the text attributes claims without endorsement'') that provide structured reasoning patterns. Candidates undergo the same cross-encoder reranking with an elevated
+\paragraph{S2: Hard Negative Mining.}
+For conspiracy detection, we implement a \textbf{pure contrastive strategy} via hard negative mining \cite{karpukhin-etal-2020-dense}. Standard similarity-based retrieval retrieves similar-looking documents, causing the model to conflate \textit{topical similarity} with \textit{stance endorsement}, a failure mode we term the Reporter Trap. To explicitly teach the boundary, we retrieve documents labeled ``non-conspiracy'' \textit{that contain S1 markers}. These are \textit{hard} negatives because they share conspiracy-related vocabulary (actors, actions, evidence mentions) but differ in stance (reporting, debunking, or mocking). By forcing the model to compare structurally similar examples with opposite labels, we compel it to attend to \textbf{stance cues} such as attribution verbs (``claims that'', ``alleges''), hedging markers (``supposedly'', ``according to''), and framing signals (``debunked'', ``baseless''), rather than mere topic keywords. Retrieved precedents follow case-law templates (e.g., ``Acquitted because the text attributes claims without endorsement'') that provide structured reasoning patterns. Candidates undergo the same cross-encoder reranking with an elevated
 overretrieve factor ($4\times$ vs.\ $3\times$ for S1). The higher factor
 reflects the scarcity of high-quality hard negatives: because truly
 contrastive examples (non-conspiratorial texts that nonetheless contain
@@ -1038,8 +782,7 @@ MLflow \cite{mlflow2024}, using a passthrough injection pattern to tunnel gold
 labels through the prediction wrapper for custom scoring. We conduct
 optimization runs targeting S1 and S2 system prompts with population sizes of
 20--30 candidates and 40--80 trials per run, alternating between training and
-development splits to ensure generalization. Final prompts achieved +4.2\%
-absolute $F_1$ improvement over hand-crafted baselines. The GEPA optimization
+development splits to ensure generalization. GEPA-optimized prompts contributed an estimated $\sim$4 absolute F1 points over hand-crafted baselines on the dev set, consistent with the per-stage Macro F1 gains reported in Table~\ref{tab:main_results} (per-component contributions are detailed in Appendix~\ref{sec:gepa-details}). The GEPA optimization
 workflow is illustrated in Figure~\ref{fig:gepa}.
 
 \begin{figure}[t]
@@ -1100,13 +843,13 @@ F1.
 	\small
 	\resizebox{\linewidth}{!}{
 		\begin{tabular}{@{}lrrr@{}}
-			\hline
+			\toprule
 			\textbf{Configuration} & \textbf{Precision} & \textbf{Recall} & \textbf{Macro F1} \\
-			\hline
+			\midrule
 			Generator Only (Base)  & 0.145              & 0.215           & 0.173             \\
 			+ Enhanced Critic      & 0.198              & 0.225           & 0.211             \\
 			+ Refiner (Full S1)    & \textbf{0.221}     & \textbf{0.262}  & \textbf{0.240}    \\
-			\hline
+			\bottomrule
 		\end{tabular}
 	}
 	\caption{S1 Agent Ablation (Dev Set). Breakdown of contributions from the Critic and Refiner agents.}
@@ -1163,12 +906,12 @@ Parallel Council architecture (Baseline F1: 0.795):
 	\small
 	\resizebox{\linewidth}{!}{
 	\begin{tabular}{@{}lccc@{}}
-		\hline
+		\toprule
 		\textbf{Metric} & \textbf{Standard CoT (Base)} & \textbf{DD-CoT (New)} & \textbf{$\Delta$} \\
-		\hline
+		\midrule
 		\textsc{Actor} F1        & 26.3\%                       & 29.0\%                & +2.7 pts          \\
 		\textsc{Victim} F1       & 23.3\%                       & 22.0\%                & $-$1.3 pts        \\
-		\hline
+		\bottomrule
 	\end{tabular}
 	}
 	\caption{Impact of DD-CoT on Agency Disentanglement (dev). DD-CoT significantly improves \textsc{Actor} detection by resolving subject-position bias, with a minor redistribution of Victim scores.}
@@ -1179,12 +922,12 @@ Parallel Council architecture (Baseline F1: 0.795):
 	\centering
 	\small
 	\begin{tabular}{@{}lcccc@{}}
-		\hline
+		\toprule
 		\textbf{Method}  & \textbf{F1}    & \textbf{Acc.}  & \textbf{Deadlock} & \textbf{FP Conf.} \\
-		\hline
+		\midrule
 		Majority Vote    & 0.638          & 0.779          & 66.7\%            & 0.890             \\
 		Calibrated Judge & \textbf{0.681} & \textbf{0.805} & \textbf{100.0\%}  & \textbf{0.865}    \\
-		\hline
+		\bottomrule
 	\end{tabular}
 	\caption{Ablation: Judge vs.\ Majority Vote (original).}
 	\label{tab:ablation_judge}
@@ -1193,15 +936,17 @@ Parallel Council architecture (Baseline F1: 0.795):
 \begin{table}[h]
 	\centering
 	\small
+	\setlength{\tabcolsep}{3pt}
+	\resizebox{\columnwidth}{!}{%
 	\begin{tabular}{@{}lccc@{}}
-		\hline
+		\toprule
 		\textbf{Configuration}      & \textbf{Macro F1} & \textbf{Precision} & \textbf{Recall} \\
-		\hline
+		\midrule
 		No Retrieval                & \textbf{0.329}    & 0.322              & \textbf{0.419}  \\
 		Standard Retrieval (Naive)  & 0.296             & 0.292              & 0.376           \\
 		Stratified Retrieval (Ours) & 0.311             & \textbf{0.313}     & 0.392           \\
-		\hline
-	\end{tabular}
+		\bottomrule
+	\end{tabular}}
 	\caption{Few-shot retrieval strategy comparison on dev set (S1) (original).}
 	\label{tab:s1_rag_ablation}
 \end{table}
@@ -1210,12 +955,12 @@ Parallel Council architecture (Baseline F1: 0.795):
 	\centering
 	\small
 	\begin{tabular}{@{}lcc@{}}
-		\hline
+		\toprule
 		\textbf{Configuration} & \textbf{False Positive Rate} & \textbf{Reduction} \\
-		\hline
+		\midrule
 		Standard Retrieval     & 0.160                        & --                 \\
 		Contrastive Retrieval  & \textbf{0.080}               & \textbf{50\%}      \\
-		\hline
+		\bottomrule
 	\end{tabular}
 	\caption{S2 Retrieval Ablation: Impact of Contrastive Retrieval on False Positive Rate (original).}
 	\label{tab:rag_ablation}
@@ -1253,7 +998,7 @@ F1 improved from 0.53 to 0.79 (+49\% relative). The baseline suffers from the
 \textit{Literalist} enforces strict definitional criteria.
 
 \paragraph{Test Set Generalization.}
-Both S1, S2 slightly degrade on the larger test set (S1: -12.5\%, S2: -5\%),
+Both S1 and S2 slightly degrade on the larger test set (S1: $-$12.5\%, S2: $-$5\%),
 consistent with distribution shift and the inherent difficulty of span
 extraction on unseen text.
 
@@ -1934,9 +1679,9 @@ optimization runs:
 	\small
 	\resizebox{\linewidth}{!}{
 	\begin{tabular}{@{}lll@{}}
-		\hline
+		\toprule
 		\textbf{Parameter}         & \textbf{Value}     & \textbf{Description}                          \\
-		\hline
+		\midrule
 		Population size            & 20--30             & Number of prompt candidates                   \\
 		Max generations            & 40--80             & Budget (max\_metric\_calls)                   \\
 		Tournament size            & 3                  & Selection pressure                            \\
@@ -1948,7 +1693,7 @@ optimization runs:
 		Feedback history window    & 5 generations      & Error aggregation depth                       \\
 		S1 fitness metric          & $F_2$ (Macro)      & Recall-biased F-score ($\beta = 2$)           \\
 		S2 fitness metric          & Gradient Consensus & Vote-ratio scoring (\S\ref{sec:gepa-fitness}) \\
-		\hline
+		\bottomrule
 	\end{tabular}
 	}
 	\caption{GEPA hyperparameter configuration for S1 and S2 optimization.}
@@ -1957,14 +1702,21 @@ optimization runs:
 
 \subsection{Performance Gains}
 
-Automated prompt optimization via GEPA yielded significant absolute
-improvements over hand-crafted baselines:
+Automated prompt optimization via GEPA yielded measurable improvements
+over hand-crafted baselines, reported here in terms of the GEPA fitness
+metrics used during optimization (Macro $F_2$ for S1; Gradient Consensus
+for S2) rather than the official Macro F1 evaluated on the SemEval dev
+set (Table~\ref{tab:main_results}):
 
 \begin{itemize}[noitemsep]
-	\item \textbf{S1 (DD-CoT)}: $F_1$ improved from 0.72 to 0.81 (+12.5\%)
-	\item \textbf{S2 (Anti-Echo Council)}: Accuracy improved from 0.78 to 0.84 (+7.7\%)
-	\item \textbf{Hard-Negative Robustness}: S2 hard-negative accuracy improved from 0.62 to 0.79 (+27.4\%)
+	\item \textbf{S1 (DD-CoT)}: training-set $F_2$ improved from 0.72 to 0.81 (+12.5\%)
+	\item \textbf{S2 (Anti-Echo Council)}: Gradient Consensus accuracy improved from 0.78 to 0.84 (+7.7\%)
+	\item \textbf{Hard-negative robustness}: S2 hard-negative accuracy improved from 0.62 to 0.79 (+27.4\%)
 \end{itemize}
+On the dev set, this translated into an estimated $\sim$4 absolute Macro F1
+points over the hand-crafted prompts, with the remainder of the headline
+gains in Table~\ref{tab:main_results} attributable to the agentic
+architecture (Self-Refine, DD-CoT, and the Council).
 
 \paragraph{Convergence analysis.} Fitness typically plateaus after 50--60 evaluations, with 90\% of final
 improvement achieved within the first 30 generations. This suggests that GEPA
@@ -1980,14 +1732,9 @@ efficiently exploits the prompt space without requiring exhaustive search.
 These failure modes validate the importance of \textbf{minimal edits} and
 \textbf{structured feedback} in guiding effective mutations.
 
-\section{Sensitivity and Robustness Analysis}
-\label{app:sensitivity}
-
-Temperature stratification robustness is central to our agentic design. Setting all agents to $\tau=0.0$ results in a mode collapse where the Parallel Council generates redundant arguments, while elevated temperatures ($\tau>0.7$) for the \textit{Judge} or \textit{Critic} erode deterministic boundary enforcement. Additionally, the judge is resistant to relaxed thresholds, though lowering the override threshold slightly increases false positives.
-
 \section{Portability to Open-Weights Models}
 \label{app:open-weights}
-We additionally evaluated a smaller, open-weights model, Qwen-3-8B-Instruct \cite{qwen3}, to test the architectural portability of our approach. Due to the model's limited tool-calling fidelity---a known challenge for smaller models attempting complex API schemas \cite{patil2023gorilla}---and reduced adherence to multi-turn instructions, the full DD-CoT schema proved too complex. Instead, we deployed a \textbf{Lite S1 Agent} using simplified Pydantic schemas (3 fields vs.\ 10) and no self-refinement loop. Similarly, for S2, we simplified the Council to a \textbf{Dyadic Debate} (Prosecutor vs.\ Defense) followed by a Judge, removing the Literalist and Profiler roles to reduce context load. Despite these simplifications, Qwen-3-8B achieved 0.16 macro F1 on S1 and 0.63 weighted F1 on S2 (Dev set). While lower than the full GPT-5.2 system (0.24 / 0.79), these results remain competitive with the organizer baselines (approx 0.15 / 0.76), suggesting that the core agentic reasoning transfers meaningfully even to 8B-scale models with reduced schema complexity.
+We additionally evaluated a smaller, open-weights model, Qwen-3-8B-Instruct \cite{qwen3}, to test the architectural portability of our approach. Due to the model's limited tool-calling fidelity (a known challenge for smaller models attempting complex API schemas \cite{patil2023gorilla}) and reduced adherence to multi-turn instructions, the full DD-CoT schema proved too complex. Instead, we deployed a \textbf{Lite S1 Agent} using simplified Pydantic schemas (3 fields vs.\ 10) and no self-refinement loop. Similarly, for S2, we simplified the Council to a \textbf{Dyadic Debate} (Prosecutor vs.\ Defense) followed by a Judge, removing the Literalist and Profiler roles to reduce context load. Despite these simplifications, Qwen-3-8B achieved 0.16 Macro Overlap F1 on S1 and 0.63 weighted F1 on S2 (Dev set). While lower than the full GPT-5.2 system (0.24 Macro Overlap F1 / 0.79 Macro F1), these results remain competitive with the organizer starter-pack baselines (approx.\ 0.15 overlap F1 and 0.76 weighted F1; cf.\ App.~\ref{app:exp-meta}), suggesting that the core agentic reasoning transfers meaningfully even to 8B-scale models with reduced schema complexity.
 
 \section{Detailed Qualitative Analysis and Error Patterns}
 \label{app:qualitative-examples}
@@ -1998,12 +1745,12 @@ To better understand the mechanism of improvement, we analyze specific linguisti
 	\scriptsize
 	\resizebox{\linewidth}{!}{
 	\begin{tabular}{@{}p{3.5cm}p{1.8cm}p{2.2cm}@{}}
-		\hline
+		\toprule
 		\textbf{Text Snippet} & \textbf{Baseline} & \textbf{Our System (Agentic)} \\
-		\hline
+		\midrule
 		\textit{``The public was manipulated by the media...''} & \textsc{Actor}: The public & \textsc{Actor}: the media \newline \textsc{Victim}: The public \\
 		\textit{``The article claims that the earth is flat.''} & Endorsement & Neutral Reporting \\
-		\hline
+		\bottomrule
 	\end{tabular}
 	}
 	\caption{Qualitative example demonstrating the resolution of agency and mitigation of the Reporter Trap by the agentic pipeline.}
@@ -2023,8 +1770,8 @@ F1, demonstrating that agency detection requires explicit reasoning about
 semantic roles rather than surface syntax.
 
 \paragraph{Success: Mitigating the Reporter Trap.}
-The ``Reporter Trap''---misclassifying neutral reporting of conspiracies as
-endorsement---is the dominant failure mode for zero-shot models. The baseline
+The ``Reporter Trap'' (misclassifying neutral reporting of conspiracies as
+endorsement) is the dominant failure mode for zero-shot models. The baseline
 frequently flags phrases like \textit{``The article claims that...''} as
 evidence of conspiracy. Our approach mitigates this through two mechanisms: (i)
 \textbf{Contrastive Retrieval} injects hard negatives (texts containing marker
@@ -2069,7 +1816,7 @@ capped at $0.75$, and the case is marked \texttt{borderline}, defaulting to
 
 \paragraph{Baseline Comparability and Reproducibility Meta-Discussion.}
 \label{app:exp-meta}
-The organizer's starter-pack baselines (approx 0.15 overlap $F_1$ and 0.76 weighted $F_1$) utilize different metric definitions than our macro-$F_1$ reporting; thus, $\Delta$ improvements are reported relative to our internal zero-shot GPT-5.2 baseline to ensure a controlled comparison. Regarding reproducibility, floating-point non-associativity in Mixture-of-Experts (MoE) architectures \cite{thinkingmachines_nondeterminism} introduces minor variance in extraction boundaries, which we mitigate via multi-run validation and hierarchical auditing nodes ($\tau=0.0$).
+The organizer's starter-pack baselines (approx.\ 0.15 overlap $F_1$ and 0.76 weighted $F_1$) utilize different metric definitions than our macro-$F_1$ reporting; thus, $\Delta$ improvements are reported relative to our internal zero-shot GPT-5.2 baseline to ensure a controlled comparison. Regarding reproducibility, floating-point non-associativity in Mixture-of-Experts (MoE) architectures \cite{thinkingmachines_nondeterminism} introduces minor variance in extraction boundaries, which we mitigate via multi-run validation (3 independent runs per configuration) and hierarchical auditing nodes ($\tau=0.0$); reported numbers are means with observed dev-set variance of $\approx \pm 1.5\%$ F1 across runs. All experiments use the public GPT-5.2 endpoint (\texttt{gpt-5.2}, default snapshot, accessed January 2026), \texttt{text-embedding-3-small} (1536-dim), \texttt{BAAI/bge-reranker-v2-m3}, and ChromaDB~0.5; pinned dependencies, configuration files, and the exact commit hash used for the camera-ready submission are released alongside the code on GitHub.
 
 
 \end{document}
